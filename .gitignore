@@ -36,3 +36,14 @@ Thumbs.db
 # iOS Stuff #
 *.pbxuser
 *.pbxproj
+
+# Misc #
+.DS_Store	 	
+*.swp	
+*~.nib	
+build/	 	
+xcuserdata/ 	
+project.xcworkspace/
+*.mode1v3	 	
+*.mode2v3
+*conflicted copy*

@@ -1,0 +1,310 @@
+/* Account
+ Account object name
+ Account singular */
+"Account" = "取引先";
+
+/* Account address section */
+"Account Address" = "取引先住所";
+
+/* Account basics section */
+"Account Basics" = "取引先基本情報";
+
+/* Account detail section */
+"Account Detail" = "取引先詳細情報";
+
+/* Account information section header */
+"Account Information" = "取引先情報";
+
+/* Account name field */
+"Account Name" = "取引先名";
+
+/* Account plural
+ Accounts button */
+"Accounts" = "取引先";
+
+/* Followed accounts title */
+"Accounts I Follow" = "フォローしている取引先";
+
+/* Address label */
+"Address" = "住所";
+
+/* Alert */
+"Alert" = "アラート";
+
+/* Account annual revenue field */
+"Annual Revenue" = "年間売上";
+
+/* Single account delete confirm */
+"Are you sure you want to delete" = "削除してよろしいですか?";
+
+/* Delete local accounts second warning */
+"Are you sure? This cannot be undone." = "実行してよろしいですか?この操作は元に戻せません。";
+
+/* articles */
+"articles" = "記事";
+
+/* Authenticating */
+"Authenticating" = "認証中";
+
+/* first-run 3 */
+"Browse record overviews with interactive maps for each Account." = "各取引先の対話形式のマップを使用してレコードの概要を参照します。";
+
+/* Cancel */
+"Cancel" = "キャンセル";
+
+/* Account city field */
+"City" = "市区郡";
+
+/* Copy */
+"Copy" = "コピー";
+
+/* Copy link */
+"Copy Link" = "リンクをコピー";
+
+/* Account country field */
+"Country" = "国";
+
+/* days ago relative time */
+"days ago" = "日前";
+
+/* Delete */
+"Delete" = "削除";
+
+/* Delete account action */
+"Delete Account" = "取引先を削除";
+
+/* Delete all action */
+"Delete All" = "すべて削除";
+
+/* Delete local accounts warning */
+"Delete all local accounts? This cannot be undone." = "ローカル取引先をすべて削除しますか?この操作は元に戻せません。";
+
+/* Delete local accounts */
+"Delete Local Accounts" = "ローカル取引先を削除";
+
+/* Account description field */
+"Description" = "説明";
+
+/* Displaying articles */
+"Displaying" = "表示中";
+
+/* Editing an account */
+"Edit Account" = "取引先の編集";
+
+/* Email action */
+"Email" = "メール";
+
+/* Account employees field */
+"Employees" = "従業員数";
+
+/* Error loading following state */
+"Error" = "エラー";
+
+/* Generic OAuth failure */
+"Failed to authenticate." = "認証に失敗しました。";
+
+/* Account query failed */
+"Failed to load Accounts." = "アカウントの読み込みに失敗しました。";
+
+/* Account query failed */
+"Failed to load this account." = "このアカウントの読み込みに失敗しました。";
+
+/* Account load failed
+ Failed to load account */
+"Failed to load this Account." = "このアカウントの読み込みに失敗しました。";
+
+/* Client login failed */
+"Failed to login with client credentials." = "クライアントログイン情報でのログインに失敗しました。";
+
+/* Account fax field */
+"Fax" = "Fax";
+
+/* Follow */
+"Follow" = "フォローする";
+
+/* Following */
+"Following" = "フォロー中";
+
+/* Geocode failure */
+"Geocode Failed — Tap to retry" = "ジオコーディングに失敗しました — 再試行するにはタップしてください";
+
+/* hours ago relative time */
+"hours ago" = "時間前";
+
+/* Account industry field
+ Industry field */
+"Industry" = "業種";
+
+/* just now relative time */
+"just now" = "たった今";
+
+/* last update */
+"Last Update" = "最終更新日";
+
+/* Loading News */
+"Loading News" = "ニュースを読み込み中...";
+
+/* Default DSActivtyView label text
+ Loading... */
+"Loading..." = "読み込み中...";
+
+/* Local Accounts title */
+"Local Accounts" = "ローカル取引先";
+
+/* Log In action */
+"Log In" = "ログイン";
+
+/* Log Out
+ Log Out action */
+"Log Out" = "ログアウト";
+
+/* Log out */
+"Log out" = "ログアウト";
+
+/* Logged in as */
+"Logged in as" = "ログインユーザ";
+
+/* Mail Link */
+"Mail Link" = "リンクをメールで送信";
+
+/* No comment provided by engineer. */
+"Master" = "マスタ";
+
+/* minutes ago relative time */
+"minutes ago" = "分前";
+
+/* My Accounts title */
+"My Accounts" = "私の取引先";
+
+/* Account name field */
+"Name" = "名前";
+
+/* never relative time */
+"never" = "なし";
+
+/* Creating a new account */
+"New Account" = "新規取引先";
+
+/* News */
+"News" = "ニュース";
+
+/* No Accounts */
+"No Accounts" = "取引先はありません";
+
+/* No local accounts */
+"No Local Accounts" = "ローカル取引先はありません";
+
+/* No news label */
+"No news — Tap to refresh" = "ニュースはありません - 更新するにはタップしてください";
+
+/* OK */
+"OK" = "OK";
+
+/* Open in Maps */
+"Open in Maps" = "マップで開く";
+
+/* Open in safari */
+"Open in Safari" = "Safari で開く";
+
+/* Owner */
+"Owner" = "所有者";
+
+/* Account phone field
+ Phone field */
+"Phone" = "電話";
+
+/* Account postal code field */
+"Postal Code" = "郵便番号";
+
+/* Google news attribution */
+"Powered by Google News" = "Powered by Google News";
+
+/* Pull to refresh */
+"Pull down to Refresh" = "プルダウンして更新";
+
+/* first-run 2 */
+"Read the latest news headlines for your Accounts." = "取引先の最新のニュースヘッドラインをお読みください。";
+
+/* Recenter label */
+"Recenter" = "リセンター";
+
+/* Release to refresh */
+"Release to Refresh" = "指を離して更新";
+
+/* Result */
+"Result" = "結果";
+
+/* Results
+ Results plural */
+"Results" = "結果";
+
+/* Retry */
+"Retry" = "再試行";
+
+"Required" = "必須";
+
+"Salesforce Login" = "Salesforce ログイン";
+
+/* first-run 1 */
+"Save your most important Accounts to secure offline access." = "最も重要な取引先を保存してオフラインアクセスできるようにしてください。";
+
+/* Searching all accounts */
+"Search All Accounts" = "取引先をすべて検索";
+
+/* Searching local accounts */
+"Search Local Accounts" = "ローカル取引先を検索";
+
+/* Searching... */
+"Searching..." = "検索中...";
+
+/* seconds ago relative time */
+"seconds ago" = "秒前";
+
+/* log in window title */
+"Secure Log In" = "セキュアなログイン";
+
+/* Send email */
+"Send Email" = "メールを送信";
+
+/* Settings */
+"Settings" = "設定";
+
+/* firstrun - local accounts or login */
+"Start with local accounts or log in now to Salesforce." = "ローカル取引先から開始するか、Salesforce に今すぐログインします。";
+
+/* Account state field */
+"State" = "状態";
+
+/* Account street field */
+"Street" = "町名・番地";
+
+/* firstrun - Swipe left and right intro string */
+"Swipe right and left to see what Account Viewer can do." = "左右にスワイプして表示できる Account Viewer を表示";
+
+/* Tap to add an account */
+"Tap + to add one!" = "タップしてアカウントを追加!";
+
+/* Generic login error */
+"There was an error logging in." = "ログイン中にエラーが発生しました。";
+
+/* Account ticker symbol field */
+"Ticker Symbol" = "株式コード";
+
+/* Unfollow */
+"Unfollow" = "フォロー解除";
+
+/* first-run 4 */
+"View full record detail for any Account." = "任意の取引先レコードの全詳細を表示します。";
+
+/* More account details */
+"View More Account Details" = "アカウント詳細をさらに表示";
+
+/* Account website field
+ Website field */
+"Website" = "Web サイト";
+
+/* Welcome to */
+"Welcome to" = "ようこそ";
+
+/* Password needs reset */
+"Your password is expired. Please reset it at login.salesforce.com." = "ご使用のパスワードは期限切れです。login.salesforce.com でパスワードをリセットしてください。";

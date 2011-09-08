@@ -1,0 +1,310 @@
+/* Account
+ Account object name
+ Account singular */
+"Account" = "帐户";
+
+/* Account address section */
+"Account Address" = "帐户地址";
+
+/* Account basics section */
+"Account Basics" = "帐户基本信息";
+
+/* Account detail section */
+"Account Detail" = "帐户详细信息";
+
+/* Account information section header */
+"Account Information" = "帐户信息";
+
+/* Account name field */
+"Account Name" = "帐户名";
+
+/* Account plural
+ Accounts button */
+"Accounts" = "帐户";
+
+/* Followed accounts title */
+"Accounts I Follow" = "我追随的帐户";
+
+/* Address label */
+"Address" = "地址";
+
+/* Alert */
+"Alert" = "警告";
+
+/* Account annual revenue field */
+"Annual Revenue" = "年收入";
+
+/* Single account delete confirm */
+"Are you sure you want to delete" = "是否确定要删除";
+
+/* Delete local accounts second warning */
+"Are you sure? This cannot be undone." = "是否确定？此操作将无法撤销。";
+
+/* articles */
+"articles" = "对象";
+
+/* Authenticating */
+"Authenticating" = "正在验证";
+
+/* first-run 3 */
+"Browse record overviews with interactive maps for each Account." = "藉由每个帐户的互动地图浏览记录概要。";
+
+/* Cancel */
+"Cancel" = "取消";
+
+/* Account city field */
+"City" = "城市";
+
+/* Copy */
+"Copy" = "复制";
+
+/* Copy link */
+"Copy Link" = "复制链接";
+
+/* Account country field */
+"Country" = "国家/地区";
+
+/* days ago relative time */
+"days ago" = "天前";
+
+/* Delete */
+"Delete" = "删除";
+
+/* Delete account action */
+"Delete Account" = "删除帐户";
+
+/* Delete all action */
+"Delete All" = "全部删除";
+
+/* Delete local accounts warning */
+"Delete all local accounts? This cannot be undone." = "删除全部本地帐户？此操作将无法撤销。";
+
+/* Delete local accounts */
+"Delete Local Accounts" = "删除本地帐户";
+
+/* Account description field */
+"Description" = "描述";
+
+/* Displaying articles */
+"Displaying" = "正在显示";
+
+/* Editing an account */
+"Edit Account" = "编辑帐户";
+
+/* Email action */
+"Email" = "电子邮件";
+
+/* Account employees field */
+"Employees" = "职员数";
+
+/* Error loading following state */
+"Error" = "错误";
+
+/* Generic OAuth failure */
+"Failed to authenticate." = "无法验证。";
+
+/* Account query failed */
+"Failed to load Accounts." = "无法加载帐户。";
+
+/* Account query failed */
+"Failed to load this account." = "无法加载此帐户。";
+
+/* Account load failed
+ Failed to load account */
+"Failed to load this Account." = "无法加载此帐户。";
+
+/* Client login failed */
+"Failed to login with client credentials." = "无法使用用户端凭据登录。";
+
+/* Account fax field */
+"Fax" = "传真";
+
+/* Follow */
+"Follow" = "追随";
+
+/* Following */
+"Following" = "正在追随";
+
+/* Geocode failure */
+"Geocode Failed — Tap to retry" = "地理代码无效，轻触以重试";
+
+/* hours ago relative time */
+"hours ago" = "小时前";
+
+/* Account industry field
+ Industry field */
+"Industry" = "行业";
+
+/* just now relative time */
+"just now" = "一会儿前";
+
+/* last update */
+"Last Update" = "上次更新";
+
+/* Loading News */
+"Loading News" = "正在加载新闻";
+
+/* Default DSActivtyView label text
+ Loading... */
+"Loading..." = "正在加载...";
+
+/* Local Accounts title */
+"Local Accounts" = "本地帐户";
+
+/* Log In action */
+"Log In" = "登录";
+
+/* Log Out
+ Log Out action */
+"Log Out" = "退出";
+
+/* Log out */
+"Log out" = "退出";
+
+/* Logged in as */
+"Logged in as" = "登录身份";
+
+/* Mail Link */
+"Mail Link" = "邮寄链接";
+
+/* No comment provided by engineer. */
+"Master" = "主类型";
+
+/* minutes ago relative time */
+"minutes ago" = "分钟前";
+
+/* My Accounts title */
+"My Accounts" = "我的帐户";
+
+/* Account name field */
+"Name" = "名称";
+
+/* never relative time */
+"never" = "从未";
+
+/* Creating a new account */
+"New Account" = "新帐户";
+
+/* News */
+"News" = "新闻";
+
+/* No Accounts */
+"No Accounts" = "没有帐户";
+
+/* No local accounts */
+"No Local Accounts" = "没有本地帐户";
+
+/* No news label */
+"No news — Tap to refresh" = "没有新闻，轻触以刷新";
+
+/* OK */
+"OK" = "确定";
+
+/* Open in Maps */
+"Open in Maps" = "在“地图”中打开";
+
+/* Open in safari */
+"Open in Safari" = "在“Safari”中打开";
+
+/* Owner */
+"Owner" = "所有人";
+
+/* Account phone field
+ Phone field */
+"Phone" = "电话";
+
+/* Account postal code field */
+"Postal Code" = "邮政编码";
+
+/* Google news attribution */
+"Powered by Google News" = "由 Google News 提供";
+
+/* Pull to refresh */
+"Pull down to Refresh" = "下拉以刷新";
+
+/* first-run 2 */
+"Read the latest news headlines for your Accounts." = "阅读您帐户的最新新闻标题。";
+
+/* Recenter label */
+"Recenter" = "最近更新";
+
+/* Release to refresh */
+"Release to Refresh" = "松开以刷新";
+
+/* Result */
+"Result" = "结果";
+
+/* Results
+ Results plural */
+"Results" = "结果";
+
+/* Retry */
+"Retry" = "重试";
+
+"Required" = "必须";
+
+"Salesforce Login" = "Salesforce 登录";
+
+/* first-run 1 */
+"Save your most important Accounts to secure offline access." = "保存最重要的帐户以确保脱机访问。";
+
+/* Searching all accounts */
+"Search All Accounts" = "搜索所有帐户";
+
+/* Searching local accounts */
+"Search Local Accounts" = "搜索本地帐户";
+
+/* Searching... */
+"Searching..." = "正在搜索...";
+
+/* seconds ago relative time */
+"seconds ago" = "秒前";
+
+/* log in window title */
+"Secure Log In" = "安全登录";
+
+/* Send email */
+"Send Email" = "发送电子邮件";
+
+/* Settings */
+"Settings" = "设置";
+
+/* firstrun - local accounts or login */
+"Start with local accounts or log in now to Salesforce." = "从本地帐户开始，或立即登录 Salesforce。";
+
+/* Account state field */
+"State" = "州/省";
+
+/* Account street field */
+"Street" = "街道";
+
+/* firstrun - Swipe left and right intro string */
+"Swipe right and left to see what Account Viewer can do." = "向左或向右滑动，看看 Account Viewer 的功能。";
+
+/* Tap to add an account */
+"Tap + to add one!" = "轻触 + 以添加帐户！";
+
+/* Generic login error */
+"There was an error logging in." = "登录时发生问题。";
+
+/* Account ticker symbol field */
+"Ticker Symbol" = "公司股票代码";
+
+/* Unfollow */
+"Unfollow" = "取消追随";
+
+/* first-run 4 */
+"View full record detail for any Account." = "查看任何帐户的完整记录详细信息。";
+
+/* More account details */
+"View More Account Details" = "查看更多帐户详细信息";
+
+/* Account website field
+ Website field */
+"Website" = "网站";
+
+/* Welcome to */
+"Welcome to" = "欢迎使用";
+
+/* Password needs reset */
+"Your password is expired. Please reset it at login.salesforce.com." = "您的密码已过期。请在 login.salesforce.com 重新设置密码。";

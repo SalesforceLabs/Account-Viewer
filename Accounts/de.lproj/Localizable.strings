@@ -1,0 +1,310 @@
+/* Account
+ Account object name
+ Account singular */
+"Account" = "Account";
+
+/* Account address section */
+"Account Address" = "Accountadresse";
+
+/* Account basics section */
+"Account Basics" = "Accountgrundlagen";
+
+/* Account detail section */
+"Account Detail" = "Accountdetails";
+
+/* Account information section header */
+"Account Information" = "Accountinformationen";
+
+/* Account name field */
+"Account Name" = "Accountname";
+
+/* Account plural
+ Accounts button */
+"Accounts" = "Accounts";
+
+/* Followed accounts title */
+"Accounts I Follow" = "Accounts, denen ich folge";
+
+/* Address label */
+"Address" = "Anschrift";
+
+/* Alert */
+"Alert" = "Warnung";
+
+/* Account annual revenue field */
+"Annual Revenue" = "Jahresumsatz";
+
+/* Single account delete confirm */
+"Are you sure you want to delete" = "Wirklich löschen";
+
+/* Delete local accounts second warning */
+"Are you sure? This cannot be undone." = "Möchten Sie fortfahren? Dieser Vorgang kann nicht rückgängig gemacht werden.";
+
+/* articles */
+"articles" = "Artikel";
+
+/* Authenticating */
+"Authenticating" = "Authentifizierung";
+
+/* first-run 3 */
+"Browse record overviews with interactive maps for each Account." = "Datensatzübersichten mit interaktiven Karten für jeden Account durchsuchen.";
+
+/* Cancel */
+"Cancel" = "Abbrechen";
+
+/* Account city field */
+"City" = "Stadt";
+
+/* Copy */
+"Copy" = "Kopieren";
+
+/* Copy link */
+"Copy Link" = "Link kopieren";
+
+/* Account country field */
+"Country" = "Land";
+
+/* days ago relative time */
+"days ago" = "Tage her";
+
+/* Delete */
+"Delete" = "Löschen";
+
+/* Delete account action */
+"Delete Account" = "Account löschen";
+
+/* Delete all action */
+"Delete All" = "Alle löschen";
+
+/* Delete local accounts warning */
+"Delete all local accounts? This cannot be undone." = "Alle lokalen Accounts löschen? Dieser Vorgang kann nicht rückgängig gemacht werden.";
+
+/* Delete local accounts */
+"Delete Local Accounts" = "Lokale Accounts löschen";
+
+/* Account description field */
+"Description" = "Beschreibung";
+
+/* Displaying articles */
+"Displaying" = "Anzeige";
+
+/* Editing an account */
+"Edit Account" = "Account bearbeiten";
+
+/* Email action */
+"Email" = "E-Mail";
+
+/* Account employees field */
+"Employees" = "Mitarbeiter";
+
+/* Error loading following state */
+"Error" = "Fehler";
+
+/* Generic OAuth failure */
+"Failed to authenticate." = "Authentifizierung fehlgeschlagen.";
+
+/* Account query failed */
+"Failed to load Accounts." = "Laden von Accounts fehlgeschlagen.";
+
+/* Account query failed */
+"Failed to load this account." = "Laden dieses Accounts fehlgeschlagen.";
+
+/* Account load failed
+ Failed to load account */
+"Failed to load this Account." = "Laden dieses Accounts fehlgeschlagen.";
+
+/* Client login failed */
+"Failed to login with client credentials." = "Anmeldung mit Client-Anmeldeinformationen fehlgeschlagen.";
+
+/* Account fax field */
+"Fax" = "Fax";
+
+/* Follow */
+"Follow" = "Folgen";
+
+/* Following */
+"Following" = "Bereits im Feed";
+
+/* Geocode failure */
+"Geocode Failed — Tap to retry" = "Geocode fehlgeschlagen — Tippen, um es erneut zu versuchen";
+
+/* hours ago relative time */
+"hours ago" = "Stunden her";
+
+/* Account industry field
+ Industry field */
+"Industry" = "Branche";
+
+/* just now relative time */
+"just now" = "gerade eben";
+
+/* last update */
+"Last Update" = "Letzte Aktualisierung";
+
+/* Loading News */
+"Loading News" = "Nachrichten werden geladen";
+
+/* Default DSActivtyView label text
+ Loading... */
+"Loading..." = "Laden...";
+
+/* Local Accounts title */
+"Local Accounts" = "Lokale Accounts";
+
+/* Log In action */
+"Log In" = "Anmelden";
+
+/* Log Out
+ Log Out action */
+"Log Out" = "Abmelden";
+
+/* Log out */
+"Log out" = "Abmelden";
+
+/* Logged in as */
+"Logged in as" = "Angemeldet als";
+
+/* Mail Link */
+"Mail Link" = "Mail-Link";
+
+/* No comment provided by engineer. */
+"Master" = "Master";
+
+/* minutes ago relative time */
+"minutes ago" = "Minuten her";
+
+/* My Accounts title */
+"My Accounts" = "Meine Konten";
+
+/* Account name field */
+"Name" = "Name";
+
+/* never relative time */
+"never" = "nie";
+
+/* Creating a new account */
+"New Account" = "Neuer Account";
+
+/* News */
+"News" = "Nachrichten";
+
+/* No Accounts */
+"No Accounts" = "Keine Accounts";
+
+/* No local accounts */
+"No Local Accounts" = "Keine lokalen Accounts";
+
+/* No news label */
+"No news — Tap to refresh" = "Keine Nachrichten — Zum Aktualisieren tippen";
+
+/* OK */
+"OK" = "OK";
+
+/* Open in Maps */
+"Open in Maps" = "In Maps öffnen";
+
+/* Open in safari */
+"Open in Safari" = "In Safari öffnen";
+
+/* Owner */
+"Owner" = "Inhaber";
+
+/* Account phone field
+ Phone field */
+"Phone" = "Telefon";
+
+/* Account postal code field */
+"Postal Code" = "PLZ";
+
+/* Google news attribution */
+"Powered by Google News" = "Mit freundlicher Unterstützung von Google News";
+
+/* Pull to refresh */
+"Pull down to Refresh" = "Zum Aktualisieren herunterziehen";
+
+/* first-run 2 */
+"Read the latest news headlines for your Accounts." = "Lesen Sie die neuesten Schlagzeilen zu Ihren Accounts.";
+
+/* Recenter label */
+"Recenter" = "Neu zentrieren";
+
+/* Release to refresh */
+"Release to Refresh" = "Zum Aktualisieren loslassen";
+
+/* Result */
+"Result" = "Ergebnis";
+
+/* Results
+ Results plural */
+"Results" = "Ergebnisse";
+
+"Required" = "Erforderlich";
+
+/* Retry */
+"Retry" = "Wiederholen";
+
+"Salesforce Login" = "Salesforce-Anmeldung";
+
+/* first-run 1 */
+"Save your most important Accounts to secure offline access." = "Speichern Sie Ihre wichtigsten Accounts, um Offline-Zugriff zu gewährleisten.";
+
+/* Searching all accounts */
+"Search All Accounts" = "Alle Accounts durchsuchen";
+
+/* Searching local accounts */
+"Search Local Accounts" = "Lokale Accounts durchsuchen";
+
+/* Searching... */
+"Searching..." = "Suche läuft...";
+
+/* seconds ago relative time */
+"seconds ago" = "Sekunden her";
+
+/* log in window title */
+"Secure Log In" = "Sicheres Anmelden";
+
+/* Send email */
+"Send Email" = "E-Mail senden";
+
+/* Settings */
+"Settings" = "Einstellungen";
+
+/* firstrun - local accounts or login */
+"Start with local accounts or log in now to Salesforce." = "Beginnen Sie mit lokalen Accounts oder melden Sie sich jetzt bei Salesforce an.";
+
+/* Account state field */
+"State" = "Bundesland";
+
+/* Account street field */
+"Street" = "Straße";
+
+/* firstrun - Swipe left and right intro string */
+"Swipe right and left to see what Account Viewer can do." = "Streichen Sie mit dem Finger nach rechts und links, um die Möglichkeiten von Account Viewer zu erkunden.";
+
+/* Tap to add an account */
+"Tap + to add one!" = "Tippen Sie auf +, um einen hinzuzufügen!";
+
+/* Generic login error */
+"There was an error logging in." = "Bei der Anmeldung ist ein Fehler aufgetreten.";
+
+/* Account ticker symbol field */
+"Ticker Symbol" = "Tickersymbol";
+
+/* Unfollow */
+"Unfollow" = "Nicht mehr folgen";
+
+/* first-run 4 */
+"View full record detail for any Account." = "Zeigen Sie vollständige Datensatzdetails für jeden beliebigen Account an.";
+
+/* More account details */
+"View More Account Details" = "Weitere Accountdetails anzeigen";
+
+/* Account website field
+ Website field */
+"Website" = "Website";
+
+/* Welcome to */
+"Welcome to" = "Willkommen bei";
+
+/* Password needs reset */
+"Your password is expired. Please reset it at login.salesforce.com." = "Ihr Kennwort ist abgelaufen. Setzen Sie es unter login.salesforce.com zurück.";

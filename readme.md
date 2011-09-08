@@ -10,12 +10,27 @@ Account Viewer's source is [freely available on GitHub](https://github.com/Force
 
 In this document:
 
+- Release History
 - Account Viewer License
 - Authentication and Security
 - Getting Started
 - App Architecture
 - External APIs
 - Third-party Code
+
+## Release History ##
+
+New in v1.0.1 (September 8, 2011)
+
+- Fixes an issue where some users were unable to view any remote account if they didn't have field-level security access to one of the four overview fields on Account (Name, Phone, Website, Industry)
+- Corrected display of decimal fields to properly match their formatting on salesforce.com
+- Better validation on custom login host endpoints
+- Preliminary support for rich text fields
+- Numerous spacing/sizing/alignment fixes and other minor corrections
+
+New in v1.0 (August 25, 2010) 
+
+- Initial Release
 
 ## Account Viewer License ##
 
@@ -43,7 +58,7 @@ Other app details (first-run settings, other app preferences) are stored in `NSU
 
 ## Getting Started ##
 
-1. Grab the Account Viewer source code: `git clone git://github.com/ForceDotComLabs/Account-Viewer.git`
+1. Grab the Account Viewer source code: `git clone https://github.com/ForceDotComLabs/Account-Viewer.git`
 2. Choose either OAuth or a hardcoded username/password for your login method. 
 
 	For OAuth, create a new Remote Access application (Setup -> Develop -> Remote Access) and copy your OAuth Client ID into the `OAuthClientID` variable in `RootViewController.h`. Then, set the `useClientLogin` variable in `RootViewController.m` to `NO`.
@@ -51,7 +66,6 @@ Other app details (first-run settings, other app preferences) are stored in `NSU
 	For client login with a hardcoded username/password, enter your credentials into the `clientUserName` and `clientPassword` variables in `RootViewController.m`. Then, set the `useClientLogin` variable in `RootViewController.m` to `YES`.
 3. If you have a Google API key, paste it into `RecordNewsViewController.h` under `NEWS_API_KEY`.
 4. Build and run, and you should be good to go!
-5. If you're getting build warnings/errors akin to "Multiple build commands for output file...", you'll need to remove the .git directory from your project. See [this answer](http://stackoverflow.com/questions/2718246/xcode-strange-warning-multiple-build-commands-for-output-file) for more detail.
 
 ## App Architecture ##
 
@@ -65,7 +79,7 @@ The various interactive, draggable panes that fill the `DetailViewController` - 
 
 `RecordOverviewController` is responsible for displaying a selected Account's record overview (Name, Industry, Phone, Website), rendering the Account's location on a map, and rendering the full record page layout for the Account.
 
-`RecordNewsViewController` is responsible for querying Google News (over HTTPs) and displaying news stories about a single Account or a list of Accounts (if no single Account has yet been selected). 
+`RecordNewsViewController` is responsible for querying Google News (over HTTPS) and displaying news stories about a single Account or a list of Accounts (if no single Account has yet been selected). 
 
 `WebViewController` is a simple `UIWebView` with a few added pieces of functionality, like being able to email the link to the open page, copy its URL, open in Safari, and expand the webview to full-screen.
 

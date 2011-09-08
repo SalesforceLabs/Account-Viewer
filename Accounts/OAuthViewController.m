@@ -83,7 +83,13 @@
     
     if( [[defaults stringForKey:@"login_host"] isEqualToString:@"Sandbox"] )
         return @"https://test.salesforce.com/";
-    else if( [[defaults stringForKey:@"login_host"] isEqualToString:@"Custom Host"] && host ) {        
+    else if( [[defaults stringForKey:@"login_host"] isEqualToString:@"Custom Host"] && host ) {    
+        if( [host hasPrefix:@"http://"] )
+            host = [host stringByReplacingOccurrencesOfString:@"http://" withString:@"https://"];
+        
+        if( ![host hasPrefix:@"https://"] )
+            host = [@"https://" stringByAppendingString:host];
+        
         if( ![host hasSuffix:@"/"] )
             host = [host stringByAppendingString:@"/"];
         

@@ -44,7 +44,7 @@ enum FieldType {
     TextField,
     AddressField,
     PhoneField,
-    UserPhotoField
+    UserPhotoField,
 };
 
 @property enum FieldType fieldType;

@@ -28,6 +28,7 @@
 #import "AccountsAppDelegate.h"
 #import "SubNavViewController.h"
 #import "AccountUtil.h"
+#import "RecordDetailViewController.h"
 #import "RootViewController.h"
 #import "DetailViewController.h"
 #import "PRPSmartTableViewCell.h"
@@ -450,6 +451,16 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         storedSize = 0;
         
         rowCountLabel.text = NSLocalizedString(@"No Accounts", @"No Accounts");
+        
+        [self.pullRefreshTableViewController.tableView reloadData];
+        [self.pullRefreshTableViewController.tableView setContentOffset:CGPointZero animated:NO];
+        
+        // Displays default news headlines (for SFDC) if no accounts are visible
+        if( self.detailViewController.subNavViewController == self && 
+           ( !self.detailViewController.flyingWindows || [self.detailViewController.flyingWindows count] == 0 ) ) {
+            [NSObject cancelPreviousPerformRequestsWithTarget:self.detailViewController selector:@selector(addAccountNewsTable) object:nil];
+            [self.detailViewController performSelector:@selector(addAccountNewsTable) withObject:nil afterDelay:0.5];
+        }
         
         if( !helperViewVisible )
             [self toggleHelperView];

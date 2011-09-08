@@ -275,7 +275,7 @@
     [loading release];
     
     NSString *newsURL = [NEWS_ENDPOINT stringByAppendingFormat:@"&q=%@&rsz=8&userip=%@&hl=%@&start=%i&key=%@%@", 
-                           [newsSearchTerm stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding],
+                           [[[AccountUtil trimWhiteSpaceFromString:newsSearchTerm] stringByAppendingString:@" -CNN -BBC -nytimes -foxnews"] stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding],
                            [AccountUtil getIPAddress],
                            [[NSLocale preferredLanguages] objectAtIndex:0],
                            resultStart,
@@ -507,7 +507,7 @@
 }
 
 - (CGFloat) tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {    
-    float curY = 10, availableWidth = tableView.frame.size.width - 50;
+    float curY = 10, availableWidth = tableView.frame.size.width - 60;
     
     NSDictionary *article = [jsonArticles objectAtIndex:indexPath.section];
     UIImage *img = nil;

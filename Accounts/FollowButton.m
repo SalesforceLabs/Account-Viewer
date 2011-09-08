@@ -75,11 +75,16 @@
         case FollowLoading:
             if( !self.activityIndicator ) {
                 self.activityIndicator = [[[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite] autorelease];
-                [self.activityIndicator setFrame:CGRectMake( 35, 5, 20, 20 )];
-                [self.activityIndicator startAnimating];
+                [self.activityIndicator setFrame:CGRectMake( lroundf(( self.frame.size.width - 20 ) / 2.0f ), 5, 20, 20 )];
                 
                 [self addSubview:self.activityIndicator];
-            }
+            } 
+            
+            [self.activityIndicator startAnimating];
+            
+            title = @"";
+            image = nil;
+            
             break;
         case FollowError:
             title = NSLocalizedString(@"Error", @"Error loading following state");
@@ -103,19 +108,6 @@
     [self setTitle:title forState:UIControlStateNormal];
     [self setImage:image forState:UIControlStateNormal];
     
-    /*CGRect r = self.frame;
-    CGSize s = [[self titleForState:UIControlStateNormal] sizeWithFont:self.titleLabel.font constrainedToSize:CGSizeMake( 150, 30 )];
-    
-    if( s.width < 95 )
-        s.width = 95;
-    
-    if( s.height < 30 )
-        s.height = 30;
-    
-    r.size = s;
-    
-    [self setFrame:r];*/
-    
     if( image ) 
         self.imageEdgeInsets = UIEdgeInsetsMake( 0, 5, 0, 5 );
     else
@@ -138,17 +130,17 @@
             qr = [[[AccountUtil sharedAccountUtil] client] query:query];
         } @catch( NSException *e ) {
             [[AccountUtil sharedAccountUtil] receivedException:e];
-            followButtonState = FollowError;
+            self.followButtonState = FollowError;
             [self loadTitle];            
             return;
         }
         
         dispatch_async(dispatch_get_main_queue(), ^(void) {
             if( [[qr records] count] > 0 ) {
-                followButtonState = FollowFollowing;
+                self.followButtonState = FollowFollowing;
                 self.followId = [[[qr records] objectAtIndex:0] fieldValue:@"Id"];
             } else
-                followButtonState = FollowNotFollowing;
+                self.followButtonState = FollowNotFollowing;
             
             [self loadTitle];
         });
@@ -156,14 +148,14 @@
 }
 
 - (void) toggleFollow {
-    if( followButtonState == FollowFollowing ) {
+    if( self.followButtonState == FollowFollowing ) {
         if( !followId )
             return;
                 
         // DELETE
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0), ^(void) {
             NSArray *dr = nil;
-            followButtonState = FollowLoading;
+            self.followButtonState = FollowLoading;
             [self loadTitle];
             
             NSLog(@"DELETING %@", self.followId);
@@ -172,14 +164,14 @@
                 dr = [[[AccountUtil sharedAccountUtil] client] delete:[NSArray arrayWithObjects:self.followId, nil]];
             } @catch( NSException *e ) {
                 [[AccountUtil sharedAccountUtil] receivedException:e];
-                followButtonState = FollowFollowing;
+                self.followButtonState = FollowFollowing;
                 [self loadTitle];            
                 return;
             }
             
             dispatch_async(dispatch_get_main_queue(), ^(void) {                
                 if( [dr count] == 1 && [[dr objectAtIndex:0] success] ) {
-                    followButtonState = FollowNotFollowing;
+                    self.followButtonState = FollowNotFollowing;
                     followId = nil;
                     NSLog(@"DELETE success");
                     
@@ -190,14 +182,14 @@
                 [self loadTitle];
             });
         });
-    } else if( followButtonState == FollowNotFollowing ) {
+    } else if( self.followButtonState == FollowNotFollowing ) {
         // INSERT
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0), ^(void) {
             ZKSObject *followObject = [[ZKSObject alloc] initWithType:@"EntitySubscription"];
             [followObject setFieldValue:parentId field:@"parentId"];
             [followObject setFieldValue:userId field:@"subscriberId"];            
             
-            followButtonState = FollowLoading;
+            self.followButtonState = FollowLoading;
             [self loadTitle];
             
             NSLog(@"INSERTING %@", followObject);
@@ -208,14 +200,14 @@
                 results = [[[AccountUtil sharedAccountUtil] client] create:[NSArray arrayWithObjects:followObject, nil]];
             } @catch( NSException *e ) {
                 [[AccountUtil sharedAccountUtil] receivedException:e];
-                followButtonState = FollowNotFollowing;
+                self.followButtonState = FollowNotFollowing;
                 [self loadTitle];            
                 return;
             }
             
             dispatch_async(dispatch_get_main_queue(), ^(void) {
                 if( [results count] == 1 && [[results objectAtIndex:0] success] ) {
-                    followButtonState = FollowFollowing;
+                    self.followButtonState = FollowFollowing;
                     self.followId = [[results objectAtIndex:0] id];
                     
                     NSLog(@"INSERT success");

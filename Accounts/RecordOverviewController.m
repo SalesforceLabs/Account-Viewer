@@ -139,7 +139,7 @@ static float cornerRadius = 4.0f;
             
             geocodeButton.layer.cornerRadius = cornerRadius;
             geocodeButton.layer.borderColor = [UIColor darkGrayColor].CGColor;
-            geocodeButton.layer.borderWidth = 1.5f;            
+            geocodeButton.layer.borderWidth = 1.0f;            
             
             geocodeButton.hidden = YES;
             
@@ -234,27 +234,30 @@ static float cornerRadius = 4.0f;
         [self.scrollView setFrame:r];
     
     // Reset curY for the scrollView inner content
-    curY = 10;
+    curY = 40;
     
-    // Mapview container
-    [self.mapView setFrame:CGRectMake( 0, curY, self.view.frame.size.width, ( self.geocodeButton.hidden ? 350 : 100 ) )];
-    
-    if( !self.mapView.hidden )
-        curY += self.mapView.frame.size.height + 5;
+    [self.mapView setFrame:CGRectMake( 0, 10, self.view.frame.size.width, 10 )];
     
     // Account address button
     s = [self.addressButton.titleLabel.text sizeWithFont:self.addressButton.titleLabel.font
                                               constrainedToSize:CGSizeMake( self.view.frame.size.width - 20, 999 )];
-    [self.addressButton setFrame:CGRectMake( 10, 40, s.width, s.height)];
+    [self.addressButton setFrame:CGRectMake( 10, curY, s.width, s.height)];
+    
+    curY += self.addressButton.frame.size.height + 5;
     
     // Account map
-    r = CGRectMake( 10, self.addressButton.frame.origin.y + self.addressButton.frame.size.height + 5, 
-                          self.view.frame.size.width - 30, self.mapView.frame.size.height - self.addressButton.frame.size.height - 10 );
-    
-    if( r.size.height > 250 )
-        r.size.height = 250;
+    r = CGRectMake( 10, curY, self.view.frame.size.width - 30, 250 );
     
     [self.accountMap setFrame:r];
+    
+    curY += self.accountMap.frame.size.height;
+    
+    // Mapview container
+    [self.mapView setFrame:CGRectMake( 0, 10, self.view.frame.size.width, 
+                                      ( self.geocodeButton.hidden ? curY : 100 ) )];
+    
+    if( !self.mapView.hidden )
+        curY += 15;
     
     // Geocode failed button
     [geocodeButton setFrame:CGRectMake( 10, 40, self.mapView.frame.size.width - 30, 40)];
@@ -331,10 +334,8 @@ static float cornerRadius = 4.0f;
     // If the user taps several accounts in rapid succession, we can end up adding multiple layout views,
     // so remove all of them
     for( UIView *subview in [self.scrollView subviews] )
-        if( subview.tag == fieldLayoutTag ) {
+        if( subview.tag == fieldLayoutTag )
             [subview removeFromSuperview];
-            //subview = nil;
-        }
     
     [DSBezelActivityView removeViewAnimated:NO];
         
@@ -406,6 +407,7 @@ static float cornerRadius = 4.0f;
     NSArray *allFields = [[AccountUtil sharedAccountUtil] fieldListForLayoutId:layoutId];
     
     for( NSString *field in allFields ) {
+        // SOQL queries have a max character length of 10k
         if( [fieldsToQuery length] > 9950 )
             break;
         
@@ -416,10 +418,6 @@ static float cornerRadius = 4.0f;
                 fieldsToQuery = [fieldsToQuery stringByAppendingFormat:@", %@", field];
         }
     }
-    
-    for( NSString *headerField in [NSArray arrayWithObjects:@"Name", @"Phone", @"Industry", @"Website", nil] )
-        if( ![allFields containsObject:headerField] )
-            fieldsToQuery = [fieldsToQuery stringByAppendingFormat:@", %@", headerField];
     
     // Build and execute the query
     [[AccountUtil sharedAccountUtil] startNetworkAction];
@@ -499,7 +497,6 @@ static float cornerRadius = 4.0f;
             [DSBezelActivityView removeViewAnimated:YES];
             [self.navBar pushNavigationItem:title animated:YES];
             
-            //[self.gridView reloadData];
             self.gridView.hidden = NO;
             [self configureMap];
            

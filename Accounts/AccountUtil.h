@@ -46,6 +46,21 @@
 #define AppPrimaryColor UIColorFromRGB(0x222222)
 #define AppSecondaryColor UIColorFromRGB(0x1797C0)
 
+// Vertical space between a section header and the fields in that section
+#define SECTIONSPACING 10
+
+// Vertical space between field rows within a section
+#define FIELDSPACING 5
+
+// Standard width of a field label
+#define FIELDLABELWIDTH 140
+
+// Standard width of a field value
+#define FIELDVALUEWIDTH 190
+
+// Maximum height for a field value
+#define FIELDVALUEHEIGHT 999
+
 
 @property (nonatomic, assign) ZKSforceClient *client;
 

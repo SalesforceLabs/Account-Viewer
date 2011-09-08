@@ -118,6 +118,7 @@
 		5E74801113F32FF50083CB6F /* AboutAppViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5E74801013F32FF50083CB6F /* AboutAppViewController.m */; };
 		5E74801413F330CB0083CB6F /* flask.png in Resources */ = {isa = PBXBuildFile; fileRef = 5E74801313F330CB0083CB6F /* flask.png */; };
 		5E75190513E9C39C00AA5D55 /* appLogo.png in Resources */ = {isa = PBXBuildFile; fileRef = 5E75190413E9C39B00AA5D55 /* appLogo.png */; };
+		5E75190813E9EB4600AA5D55 /* accountnews-72.png in Resources */ = {isa = PBXBuildFile; fileRef = 5E75190713E9EB4600AA5D55 /* accountnews-72.png */; };
 		5E75190B13E9EC0000AA5D55 /* accountnews-50.png in Resources */ = {isa = PBXBuildFile; fileRef = 5E75190913E9EC0000AA5D55 /* accountnews-50.png */; };
 		5E75190C13E9EC0000AA5D55 /* accountnews-512.png in Resources */ = {isa = PBXBuildFile; fileRef = 5E75190A13E9EC0000AA5D55 /* accountnews-512.png */; };
 		5E7DCDE4138ED26300CEB44F /* tableBG.png in Resources */ = {isa = PBXBuildFile; fileRef = 5E7DCDE3138ED26300CEB44F /* tableBG.png */; };
@@ -128,6 +129,7 @@
 		5E9B7FA613B2900A00E00C2C /* SimpleKeychain.m in Sources */ = {isa = PBXBuildFile; fileRef = 5E9B7FA513B2900A00E00C2C /* SimpleKeychain.m */; };
 		5E9B920E13D889A90005ACC2 /* favorite_off.png in Resources */ = {isa = PBXBuildFile; fileRef = 5E9B920C13D889A90005ACC2 /* favorite_off.png */; };
 		5E9B920F13D889A90005ACC2 /* favorite_on.png in Resources */ = {isa = PBXBuildFile; fileRef = 5E9B920D13D889A90005ACC2 /* favorite_on.png */; };
+		5E9B921413D8D0740005ACC2 /* Root.strings in Resources */ = {isa = PBXBuildFile; fileRef = 5E9B921613D8D0740005ACC2 /* Root.strings */; };
 		5EA62EC91354CDAE0000CC79 /* NSObject+JSON.m in Sources */ = {isa = PBXBuildFile; fileRef = 5EA62EB81354CDAE0000CC79 /* NSObject+JSON.m */; };
 		5EA62ECA1354CDAE0000CC79 /* SBJsonParser.m in Sources */ = {isa = PBXBuildFile; fileRef = 5EA62EBA1354CDAE0000CC79 /* SBJsonParser.m */; };
 		5EA62ECB1354CDAE0000CC79 /* SBJsonStreamParser.m in Sources */ = {isa = PBXBuildFile; fileRef = 5EA62EBC1354CDAE0000CC79 /* SBJsonStreamParser.m */; };
@@ -144,12 +146,10 @@
 		5EC03B2413FD806D006429D0 /* appicon.png in Resources */ = {isa = PBXBuildFile; fileRef = 5EC03B2313FD806D006429D0 /* appicon.png */; };
 		5EC738D4133A6E0B0088B941 /* AccountUtil.m in Sources */ = {isa = PBXBuildFile; fileRef = 5EC738D3133A6E0B0088B941 /* AccountUtil.m */; };
 		5EC738F0133A7AA00088B941 /* user24.png in Resources */ = {isa = PBXBuildFile; fileRef = 5EC738EF133A7AA00088B941 /* user24.png */; };
+		5EC7992E1417D1C400CD0581 /* FieldWebview.m in Sources */ = {isa = PBXBuildFile; fileRef = 5EC7992D1417D1C400CD0581 /* FieldWebview.m */; };
 		5ED657DC1344FE81009166BA /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5ED657DB1344FE81009166BA /* MapKit.framework */; };
 		5ED657DF134513B2009166BA /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5ED657DE134513B2009166BA /* CoreLocation.framework */; };
 		5ED657E213451584009166BA /* AddressAnnotation.m in Sources */ = {isa = PBXBuildFile; fileRef = 5ED657E113451584009166BA /* AddressAnnotation.m */; };
-		5ED912C2140802D500603195 /* Default-Landscape~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 5ED912C1140802D500603195 /* Default-Landscape~ipad.png */; };
-		5ED912C5140802DB00603195 /* Default-Portrait~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 5ED912C4140802DB00603195 /* Default-Portrait~ipad.png */; };
-		5ED912C7140802E500603195 /* appicon.png in Resources */ = {isa = PBXBuildFile; fileRef = 5ED912C6140802E500603195 /* appicon.png */; };
 		5EE13D1813F3228C00DDCD85 /* home.png in Resources */ = {isa = PBXBuildFile; fileRef = 5EE13D1713F3228C00DDCD85 /* home.png */; };
 		5EE9AD5413D0C7B700B51C43 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 5EE9AD5613D0C7B700B51C43 /* Localizable.strings */; };
 		5EE9AD5C13D0D84B00B51C43 /* AccountAddEditController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5EE9AD5B13D0D84900B51C43 /* AccountAddEditController.m */; };
@@ -364,6 +364,7 @@
 		5E74801013F32FF50083CB6F /* AboutAppViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AboutAppViewController.m; sourceTree = "<group>"; };
 		5E74801313F330CB0083CB6F /* flask.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = flask.png; sourceTree = "<group>"; };
 		5E75190413E9C39B00AA5D55 /* appLogo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = appLogo.png; sourceTree = "<group>"; };
+		5E75190713E9EB4600AA5D55 /* accountnews-72.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "accountnews-72.png"; path = "../accountnews-72.png"; sourceTree = "<group>"; };
 		5E75190913E9EC0000AA5D55 /* accountnews-50.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "accountnews-50.png"; sourceTree = "<group>"; };
 		5E75190A13E9EC0000AA5D55 /* accountnews-512.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "accountnews-512.png"; sourceTree = "<group>"; };
 		5E7DCDE3138ED26300CEB44F /* tableBG.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = tableBG.png; sourceTree = "<group>"; };
@@ -414,13 +415,12 @@
 		5EC738D3133A6E0B0088B941 /* AccountUtil.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AccountUtil.m; sourceTree = "<group>"; };
 		5EC738E3133A70C70088B941 /* SynthesizeSingleton.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SynthesizeSingleton.h; sourceTree = "<group>"; };
 		5EC738EF133A7AA00088B941 /* user24.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = user24.png; sourceTree = "<group>"; };
+		5EC7992C1417D1C400CD0581 /* FieldWebview.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FieldWebview.h; sourceTree = "<group>"; };
+		5EC7992D1417D1C400CD0581 /* FieldWebview.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FieldWebview.m; sourceTree = "<group>"; };
 		5ED657DB1344FE81009166BA /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
 		5ED657DE134513B2009166BA /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
 		5ED657E013451584009166BA /* AddressAnnotation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AddressAnnotation.h; sourceTree = "<group>"; };
 		5ED657E113451584009166BA /* AddressAnnotation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AddressAnnotation.m; sourceTree = "<group>"; };
-		5ED912C1140802D500603195 /* Default-Landscape~ipad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "Default-Landscape~ipad.png"; path = "../Default-Landscape~ipad.png"; sourceTree = "<group>"; };
-		5ED912C4140802DB00603195 /* Default-Portrait~ipad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "Default-Portrait~ipad.png"; path = "../Default-Portrait~ipad.png"; sourceTree = "<group>"; };
-		5ED912C6140802E500603195 /* appicon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = appicon.png; path = ../appicon.png; sourceTree = "<group>"; };
 		5EE13D1713F3228C00DDCD85 /* home.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = home.png; sourceTree = "<group>"; };
 		5EE9AD5513D0C7B700B51C43 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		5EE9AD5B13D0D84900B51C43 /* AccountAddEditController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AccountAddEditController.m; sourceTree = "<group>"; };
@@ -791,15 +791,13 @@
 		5EC738ED133A7A8D0088B941 /* Images */ = {
 			isa = PBXGroup;
 			children = (
-				5ED912C6140802E500603195 /* appicon.png */,
-				5ED912C4140802DB00603195 /* Default-Portrait~ipad.png */,
-				5ED912C1140802D500603195 /* Default-Landscape~ipad.png */,
 				5EC03B2313FD806D006429D0 /* appicon.png */,
 				5E621A1813F3946100F426D1 /* tilde.png */,
 				5E74801313F330CB0083CB6F /* flask.png */,
 				5EE13D1713F3228C00DDCD85 /* home.png */,
 				5E75190913E9EC0000AA5D55 /* accountnews-50.png */,
 				5E75190A13E9EC0000AA5D55 /* accountnews-512.png */,
+				5E75190713E9EB4600AA5D55 /* accountnews-72.png */,
 				5EB4DF3413F04AD1009D3705 /* appLogo2.png */,
 				5E75190413E9C39B00AA5D55 /* appLogo.png */,
 				5E032FAC13E8A3E600B2A117 /* facetimeButton.png */,
@@ -858,6 +856,8 @@
 				5E511D871374AD8000DD44BD /* DSActivityView.m */,
 				5E54F72C1347948100CF8487 /* FieldPopoverButton.h */,
 				5E54F72B1347948100CF8487 /* FieldPopoverButton.m */,
+				5EC7992C1417D1C400CD0581 /* FieldWebview.h */,
+				5EC7992D1417D1C400CD0581 /* FieldWebview.m */,
 				5EF33A5813CCA8510093ECD8 /* FollowButton.h */,
 				5EF33A5913CCA8510093ECD8 /* FollowButton.m */,
 				5E3B32E013734CC900335ED8 /* NSURL+Additions.h */,
@@ -1004,6 +1004,7 @@
 				5EE9AD5413D0C7B700B51C43 /* Localizable.strings in Resources */,
 				5E9B920E13D889A90005ACC2 /* favorite_off.png in Resources */,
 				5E9B920F13D889A90005ACC2 /* favorite_on.png in Resources */,
+				5E9B921413D8D0740005ACC2 /* Root.strings in Resources */,
 				5E29E79413DF204B00797D9B /* leftgradient.png in Resources */,
 				5E66095713E330510005BBA5 /* leftbg.png in Resources */,
 				5E66095913E3322E0005BBA5 /* panelBG2.png in Resources */,
@@ -1020,6 +1021,7 @@
 				5E032FAE13E8A3E600B2A117 /* facetimeButton.png in Resources */,
 				5E032FAF13E8A3E600B2A117 /* skypeButton.png in Resources */,
 				5E75190513E9C39C00AA5D55 /* appLogo.png in Resources */,
+				5E75190813E9EB4600AA5D55 /* accountnews-72.png in Resources */,
 				5E75190B13E9EC0000AA5D55 /* accountnews-50.png in Resources */,
 				5E75190C13E9EC0000AA5D55 /* accountnews-512.png in Resources */,
 				5EB4DF3513F04AD1009D3705 /* appLogo2.png in Resources */,
@@ -1028,9 +1030,6 @@
 				5E621A1A13F3946100F426D1 /* tilde.png in Resources */,
 				5EC03B2413FD806D006429D0 /* appicon.png in Resources */,
 				5E2D96D41405921900F8508F /* eula.txt in Resources */,
-				5ED912C2140802D500603195 /* Default-Landscape~ipad.png in Resources */,
-				5ED912C5140802DB00603195 /* Default-Portrait~ipad.png in Resources */,
-				5ED912C7140802E500603195 /* appicon.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1141,6 +1140,7 @@
 				5E032FA413E8A09B00B2A117 /* IASKSwitch.m in Sources */,
 				5E032FA513E8A09B00B2A117 /* IASKTextField.m in Sources */,
 				5E74801113F32FF50083CB6F /* AboutAppViewController.m in Sources */,
+				5EC7992E1417D1C400CD0581 /* FieldWebview.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

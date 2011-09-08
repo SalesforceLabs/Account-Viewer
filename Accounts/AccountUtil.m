@@ -37,6 +37,7 @@
 #import "FieldPopoverButton.h"
 #import "RootViewController.h"
 #import <QuartzCore/QuartzCore.h>
+#import "FieldWebview.h"
 
 @implementation AccountUtil
 
@@ -44,21 +45,6 @@ SYNTHESIZE_SINGLETON_FOR_CLASS(AccountUtil);
 
 #define LOADVIEWBOXSIZE 100
 #define LOADINGVIEWTAG -11
-
-// Vertical space between a section header and the fields in that section
-#define SECTIONSPACING 10
-
-// Vertical space between field rows within a section
-#define FIELDSPACING 5
-
-// Standard width of a field label
-#define FIELDLABELWIDTH 140
-
-// Standard width of a field value
-#define FIELDVALUEWIDTH 190
-
-// Maximum height for a field value
-#define FIELDVALUEHEIGHT 999
 
 // Keys for things being stored in the Keychain
 static NSString *NextAccountID = @"NextAccountId";
@@ -186,6 +172,7 @@ BOOL chatterEnabled = NO;
                                                                                             withDictionary:dict]];
     
     enum FieldType f;
+    BOOL isWebView = NO;
     
     if( [[desc type] isEqualToString:@"email"] || [field isEqualToString:@"Email"] )
         f = EmailField;
@@ -197,8 +184,30 @@ BOOL chatterEnabled = NO;
         f = AddressField;
     else if( [[desc type] isEqualToString:@"phone"] || [field isEqualToString:@"Phone"] || [field isEqualToString:@"Fax"] )
         f = PhoneField;
-    else
+    else if( [[desc type] isEqualToString:@"textarea"] && [desc htmlFormatted] ) {
+        isWebView = YES;
         f = TextField;
+    } else
+        f = TextField;
+    
+    // Strip out HTML, for now
+    if( isWebView )
+        value = [self stripHTMLTags:value];
+    
+    /*if( isWebview ) {
+        FieldWebview *fwv = [FieldWebview fieldWebviewWithHTML:value withDetailViewController:target];
+        [fwv setFrame:CGRectMake( 10 + fieldLabel.frame.size.width, 0, fwv.frame.size.width, fwv.frame.size.height )];
+        
+        NSLog(@"fwv sized to %@", NSStringFromCGRect(fwv.frame));
+        
+        [fieldView addSubview:fieldLabel];
+        [fieldView addSubview:fwv];
+
+        [fieldView setFrame:CGRectMake( 0, 0, fieldLabel.frame.size.width + fwv.frame.size.width, 
+                                       MAX( fieldLabel.frame.size.height, fwv.frame.size.height ) )];
+        
+        return [fieldView autorelease];
+    }*/
     
     FieldPopoverButton *fieldValue = [FieldPopoverButton buttonWithText:value fieldType:f detailText:value];
     fieldValue.detailViewController = target;
@@ -333,8 +342,6 @@ BOOL chatterEnabled = NO;
     
     UIView *view = [[UIView alloc] initWithFrame:CGRectZero];
     
-    //[view.layer setMasksToBounds:YES];
-    //view.layer.cornerRadius = 8.0f;
     view.autoresizingMask = UIViewAutoresizingNone;
     view.backgroundColor = [UIColor clearColor];
     
@@ -430,7 +437,6 @@ BOOL chatterEnabled = NO;
                         continue;
                     
                     // Position this field within our scrollview, alternating left and right sides
-                    //ZKDescribeLayoutComponent *f = [[item layoutComponents] objectAtIndex:0];
                     ZKDescribeField *desc = [[[AccountUtil sharedAccountUtil] getAccountDescribe] fieldWithName:[f value]];
                     
                     if( !showEmptyFields && [AccountUtil isEmpty:[account objectForKey:[f value]]] )
@@ -629,7 +635,7 @@ BOOL chatterEnabled = NO;
         
     [dformatter setLocale:[NSLocale currentLocale]];
     [nformatter setLocale:[NSLocale currentLocale]];
-    
+        
     if( ![[fDescribe type] isEqualToString:@"reference"] && ![sObject fieldValue:fieldName] )
         value = @"";
     else if( [[fDescribe type] isEqualToString:@"currency"] ) {
@@ -657,9 +663,14 @@ BOOL chatterEnabled = NO;
         num = [NSNumber numberWithDouble:( [sObject doubleValue:fieldName] / 100 )];
         value = [nformatter stringFromNumber:num];
     } else if( [[fDescribe type] isEqualToString:@"double"] ) {
+        // 'Precision' is the total number of decimal digits (left and right of the decimal)
+        // 'Scale' is the number of digits to the right of the decimal
+        // No direct means of getting the number of digits to the left of the decimal, so we just subtract them
         [nformatter setNumberStyle:NSNumberFormatterDecimalStyle];
-        [nformatter setMaximumFractionDigits:[fDescribe precision]];
-        [nformatter setMaximumIntegerDigits:[fDescribe digits]];
+        
+        [nformatter setMinimumFractionDigits:[fDescribe scale]];
+        [nformatter setMaximumFractionDigits:[fDescribe scale]];
+        [nformatter setMaximumIntegerDigits:( [fDescribe precision] - [fDescribe scale] )];
         
         num = [NSNumber numberWithDouble:[sObject doubleValue:fieldName]];
         value = [nformatter stringFromNumber:num];
@@ -667,10 +678,8 @@ BOOL chatterEnabled = NO;
         // Get the name of the related record
         if( [[fDescribe referenceTo] containsObject:@"Case"] )
             value = [sObject fieldValue:@"CaseNumber"];
-            //value = [[sObject fieldValue:[fDescribe relationshipName]] fieldValue:@"CaseNumber"];
         else
             value = [sObject fieldValue:@"Name"];
-            // value = [[sObject fieldValue:[fDescribe relationshipName]] fieldValue:@"Name"];        
     } else if( [[fDescribe type] isEqualToString:@"url"] ) {
         // make sure this URL has a protocol prefix
         NSString *urlLC = [[sObject fieldValue:fieldName] lowercaseString];
@@ -805,6 +814,15 @@ BOOL chatterEnabled = NO;
                 }     
             }
         }
+    }
+    
+    // Ensure that header fields are included in the query
+    for( NSString *headerField in [NSArray arrayWithObjects:@"Name", @"Phone", @"Industry", @"Website", nil] ) {
+        ZKDescribeField *desc = [[[AccountUtil sharedAccountUtil] getAccountDescribe] fieldWithName:headerField];
+        
+        // access check for this field. even though it's a standard field, some users may not have access
+        if( desc && ![ret containsObject:headerField] )
+            ret = [ret arrayByAddingObject:headerField];
     }
     
     // This is a little silly, but page layouts don't seem to include created/modified dates if they also include
@@ -1244,7 +1262,7 @@ void addRoundedRectToPath(CGContextRef context, CGRect rect, float ovalWidth, fl
         [scanner scanUpToString:@"<" intoString:&tempText];
         
         if (tempText != nil)
-            [html appendString:tempText];
+            [html appendString:[NSString stringWithFormat:@" %@", tempText]];
         
         [scanner scanUpToString:@">" intoString:NULL];
         
@@ -1253,8 +1271,8 @@ void addRoundedRectToPath(CGContextRef context, CGRect rect, float ovalWidth, fl
         
         tempText = nil;
     }
-    
-    return html;
+        
+    return [self trimWhiteSpaceFromString:html];
 }
 
 + (NSString *)stringByDecodingEntities:(NSString *)str {

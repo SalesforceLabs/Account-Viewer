@@ -146,7 +146,6 @@
 		5EC03B2413FD806D006429D0 /* appicon.png in Resources */ = {isa = PBXBuildFile; fileRef = 5EC03B2313FD806D006429D0 /* appicon.png */; };
 		5EC738D4133A6E0B0088B941 /* AccountUtil.m in Sources */ = {isa = PBXBuildFile; fileRef = 5EC738D3133A6E0B0088B941 /* AccountUtil.m */; };
 		5EC738F0133A7AA00088B941 /* user24.png in Resources */ = {isa = PBXBuildFile; fileRef = 5EC738EF133A7AA00088B941 /* user24.png */; };
-		5EC7992E1417D1C400CD0581 /* FieldWebview.m in Sources */ = {isa = PBXBuildFile; fileRef = 5EC7992D1417D1C400CD0581 /* FieldWebview.m */; };
 		5ED657DC1344FE81009166BA /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5ED657DB1344FE81009166BA /* MapKit.framework */; };
 		5ED657DF134513B2009166BA /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5ED657DE134513B2009166BA /* CoreLocation.framework */; };
 		5ED657E213451584009166BA /* AddressAnnotation.m in Sources */ = {isa = PBXBuildFile; fileRef = 5ED657E113451584009166BA /* AddressAnnotation.m */; };
@@ -415,8 +414,6 @@
 		5EC738D3133A6E0B0088B941 /* AccountUtil.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AccountUtil.m; sourceTree = "<group>"; };
 		5EC738E3133A70C70088B941 /* SynthesizeSingleton.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SynthesizeSingleton.h; sourceTree = "<group>"; };
 		5EC738EF133A7AA00088B941 /* user24.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = user24.png; sourceTree = "<group>"; };
-		5EC7992C1417D1C400CD0581 /* FieldWebview.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FieldWebview.h; sourceTree = "<group>"; };
-		5EC7992D1417D1C400CD0581 /* FieldWebview.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FieldWebview.m; sourceTree = "<group>"; };
 		5ED657DB1344FE81009166BA /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
 		5ED657DE134513B2009166BA /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
 		5ED657E013451584009166BA /* AddressAnnotation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AddressAnnotation.h; sourceTree = "<group>"; };
@@ -856,8 +853,6 @@
 				5E511D871374AD8000DD44BD /* DSActivityView.m */,
 				5E54F72C1347948100CF8487 /* FieldPopoverButton.h */,
 				5E54F72B1347948100CF8487 /* FieldPopoverButton.m */,
-				5EC7992C1417D1C400CD0581 /* FieldWebview.h */,
-				5EC7992D1417D1C400CD0581 /* FieldWebview.m */,
 				5EF33A5813CCA8510093ECD8 /* FollowButton.h */,
 				5EF33A5913CCA8510093ECD8 /* FollowButton.m */,
 				5E3B32E013734CC900335ED8 /* NSURL+Additions.h */,
@@ -1140,7 +1135,6 @@
 				5E032FA413E8A09B00B2A117 /* IASKSwitch.m in Sources */,
 				5E032FA513E8A09B00B2A117 /* IASKTextField.m in Sources */,
 				5E74801113F32FF50083CB6F /* AboutAppViewController.m in Sources */,
-				5EC7992E1417D1C400CD0581 /* FieldWebview.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

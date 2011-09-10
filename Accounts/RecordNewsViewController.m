@@ -275,7 +275,7 @@
     [loading release];
     
     NSString *newsURL = [NEWS_ENDPOINT stringByAppendingFormat:@"&q=%@&rsz=8&userip=%@&hl=%@&start=%i&key=%@%@", 
-                           [[[AccountUtil trimWhiteSpaceFromString:newsSearchTerm] stringByAppendingString:@" -CNN -BBC -nytimes -foxnews"] stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding],
+                           [[AccountUtil trimWhiteSpaceFromString:newsSearchTerm] stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding],
                            [AccountUtil getIPAddress],
                            [[NSLocale preferredLanguages] objectAtIndex:0],
                            resultStart,

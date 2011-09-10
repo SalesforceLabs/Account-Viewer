@@ -66,6 +66,7 @@ Other app details (first-run settings, other app preferences) are stored in `NSU
 	For client login with a hardcoded username/password, enter your credentials into the `clientUserName` and `clientPassword` variables in `RootViewController.m`. Then, set the `useClientLogin` variable in `RootViewController.m` to `YES`.
 3. If you have a Google API key, paste it into `RecordNewsViewController.h` under `NEWS_API_KEY`.
 4. Build and run, and you should be good to go!
+5. If you're getting build warnings/errors akin to "Multiple build commands for output file...", you'll need to remove the .git directory from your project. See [this answer](http://stackoverflow.com/questions/2718246/xcode-strange-warning-multiple-build-commands-for-output-file) for more detail.
 
 ## App Architecture ##
 

@@ -28,7 +28,6 @@
 #import "AccountsAppDelegate.h"
 #import "SubNavViewController.h"
 #import "AccountUtil.h"
-#import "RecordDetailViewController.h"
 #import "RootViewController.h"
 #import "DetailViewController.h"
 #import "PRPSmartTableViewCell.h"

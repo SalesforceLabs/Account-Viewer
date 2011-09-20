@@ -129,7 +129,6 @@
 		5E9B7FA613B2900A00E00C2C /* SimpleKeychain.m in Sources */ = {isa = PBXBuildFile; fileRef = 5E9B7FA513B2900A00E00C2C /* SimpleKeychain.m */; };
 		5E9B920E13D889A90005ACC2 /* favorite_off.png in Resources */ = {isa = PBXBuildFile; fileRef = 5E9B920C13D889A90005ACC2 /* favorite_off.png */; };
 		5E9B920F13D889A90005ACC2 /* favorite_on.png in Resources */ = {isa = PBXBuildFile; fileRef = 5E9B920D13D889A90005ACC2 /* favorite_on.png */; };
-		5E9B921413D8D0740005ACC2 /* Root.strings in Resources */ = {isa = PBXBuildFile; fileRef = 5E9B921613D8D0740005ACC2 /* Root.strings */; };
 		5EA62EC91354CDAE0000CC79 /* NSObject+JSON.m in Sources */ = {isa = PBXBuildFile; fileRef = 5EA62EB81354CDAE0000CC79 /* NSObject+JSON.m */; };
 		5EA62ECA1354CDAE0000CC79 /* SBJsonParser.m in Sources */ = {isa = PBXBuildFile; fileRef = 5EA62EBA1354CDAE0000CC79 /* SBJsonParser.m */; };
 		5EA62ECB1354CDAE0000CC79 /* SBJsonStreamParser.m in Sources */ = {isa = PBXBuildFile; fileRef = 5EA62EBC1354CDAE0000CC79 /* SBJsonStreamParser.m */; };
@@ -999,7 +998,6 @@
 				5EE9AD5413D0C7B700B51C43 /* Localizable.strings in Resources */,
 				5E9B920E13D889A90005ACC2 /* favorite_off.png in Resources */,
 				5E9B920F13D889A90005ACC2 /* favorite_on.png in Resources */,
-				5E9B921413D8D0740005ACC2 /* Root.strings in Resources */,
 				5E29E79413DF204B00797D9B /* leftgradient.png in Resources */,
 				5E66095713E330510005BBA5 /* leftbg.png in Resources */,
 				5E66095913E3322E0005BBA5 /* panelBG2.png in Resources */,

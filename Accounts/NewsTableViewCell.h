@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -33,7 +33,7 @@
 @class RecordNewsViewController;
 
 @interface NewsTableViewCell : PRPSmartTableViewCell {
-
+    float cellWidth;
 }
 
 @property (nonatomic, assign) RecordNewsViewController *recordNewsViewController;
@@ -43,12 +43,11 @@
 @property (nonatomic, assign) UILabel *articleBrief;
 @property (nonatomic, assign) NSDictionary *articleJSON;
 @property (nonatomic, assign) UIImageView *articleImageView;
-@property (nonatomic, assign) NSNumber *cellWidth;
 
 - (id) initWithCellIdentifier:(NSString *)cellID;
 - (void) setArticle:(NSDictionary *)article;
 - (void) setArticleImage:(UIImage *)image;
-- (void) setCellWidth:(NSNumber *) width;
+- (void) setCellWidth:(float) width;
 - (void) layoutCell;
 
 - (void) dealloc;

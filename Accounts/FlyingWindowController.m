@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -55,7 +55,7 @@
         
         CAGradientLayer *shadowLayer = [CAGradientLayer layer];
         shadowLayer.backgroundColor = [UIColor clearColor].CGColor;
-        shadowLayer.frame = CGRectMake(-12, 0, 12, 1024);
+        shadowLayer.frame = CGRectMake(-5, 0, 5, 1024);
         shadowLayer.shouldRasterize = YES;
         
 		shadowLayer.colors = [NSArray arrayWithObjects:(id)[UIColor colorWithWhite:0.0 alpha:0.01].CGColor,
@@ -89,6 +89,16 @@
     }
     
     return self;
+}
+
+- (void) setFrame:(CGRect)frame {
+    [self.view setFrame:frame];
+}
+
+- (BOOL) isLargeWindow {
+    return  self.flyingWindowType == FlyingWindowWebView ||
+            self.flyingWindowType == FlyingWindowRelatedListGrid ||
+            self.flyingWindowType == FlyingWindowRelatedRecordView;
 }
 
 - (void) setDimmerAlpha:(float)alpha {
@@ -165,17 +175,22 @@
 }
 
 - (void) slideFlyingWindowToPoint:(CGPoint)point {    
+    point.x = lroundf( point.x );
+    
+    if( CGPointEqualToPoint( point, self.view.center ) )
+        return;
+        
     [UIView beginAnimations:nil context:NULL];
     [UIView setAnimationDuration:.35];
     [UIView setAnimationCurve:UIViewAnimationCurveEaseOut];
     [[self view] setCenter:point];
-    [self setDimmerAlpha:0];
+    /*[self setDimmerAlpha:0];
     
     if( self.leftFWC ) {
          CGRect overlap = CGRectIntersection( self.view.frame, self.leftFWC.view.frame );
          float perc = overlap.size.width / self.leftFWC.view.frame.size.width;
          [self.leftFWC setDimmerAlpha:perc];
-    }
+    }*/
     
     [UIView commitAnimations];
 }

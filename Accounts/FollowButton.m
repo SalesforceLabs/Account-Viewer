@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -29,94 +29,71 @@
 #import "zkSforce.h"
 #import "FollowButton.h"
 #import <QuartzCore/QuartzCore.h>
+#import "SubNavViewController.h"
 
 @implementation FollowButton
 
-@synthesize userId, parentId, followButtonState, followId, target, action, activityIndicator;
+@synthesize userId, parentId, followButtonState, followId, delegate, sheet;
 
-+ (id) followButtonWithUserId:(NSString *)uId parentId:(NSString *)pId target:(id)target action:(SEL)action {    
-    FollowButton *button = [self buttonWithType:UIButtonTypeCustom];
++ (id) followButtonWithUserId:(NSString *)uId parentId:(NSString *)pId {    
+    FollowButton *button = [FollowButton alloc];
+    [button initWithTitle:NSLocalizedString(@"Loading...", nil)
+                    style:UIBarButtonItemStyleBordered
+                   target:button
+                   action:@selector(buttonTapped:)];
     
     button.userId = uId;
     button.parentId = pId;
     button.followId = nil;
-    button.target = target;
-    button.action = action;
-    
-    button.titleLabel.font = [UIFont boldSystemFontOfSize:13];        
-    [button setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    [button setTitleColor:[UIColor darkTextColor] forState:UIControlStateHighlighted];
-    
-    button.backgroundColor = [UIColor colorWithPatternImage:[UIImage imageNamed:@"barButtonBackground.png"]];
         
-    button.titleLabel.lineBreakMode = UILineBreakModeWordWrap;
-    button.titleLabel.numberOfLines = 1;
-    button.titleLabel.textAlignment = UITextAlignmentCenter;
-    button.titleLabel.adjustsFontSizeToFitWidth = YES;
+    return [button autorelease];
+}
+
++ (UIBarButtonItem *) loadingBarButtonItem {
+    UIActivityIndicatorView *activity = [[UIActivityIndicatorView alloc] initWithFrame:CGRectMake( 0, 0, 25, 25 )];
+    [activity sizeToFit];
+    [activity setAutoresizingMask:(UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin)];
+    [activity startAnimating];
     
-    button.layer.masksToBounds = YES;
-    button.layer.cornerRadius = 8.0f;
+    UIBarButtonItem *item = [[UIBarButtonItem alloc] initWithCustomView:activity];
+    [activity release];
     
-    [button addTarget:button action:@selector(buttonTapped:) forControlEvents:UIControlEventTouchUpInside];
+    TransparentToolBar *toolbar = [[TransparentToolBar alloc] initWithFrame:CGRectMake(0, 0, 50, 44)];
+    [toolbar setItems:[NSArray arrayWithObjects:item, nil]];
+    [item release];
     
-    button.followButtonState = FollowLoading;
+    UIBarButtonItem *bar = [[UIBarButtonItem alloc] initWithCustomView:toolbar];
+    [toolbar release];
     
-    [button loadTitle];    
-    [button loadFollowState];
-    
-    return button;
+    return [bar autorelease];
 }
 
 - (void) loadTitle {
     NSString *title = nil;
-    UIImage *image = nil;
-    
+        
     switch( followButtonState ) {
-        case FollowLoading:
-            if( !self.activityIndicator ) {
-                self.activityIndicator = [[[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite] autorelease];
-                [self.activityIndicator setFrame:CGRectMake( lroundf(( self.frame.size.width - 20 ) / 2.0f ), 5, 20, 20 )];
-                
-                [self addSubview:self.activityIndicator];
-            } 
-            
-            [self.activityIndicator startAnimating];
-            
+        case FollowLoading:            
             title = @"";
-            image = nil;
-            
             break;
         case FollowError:
             title = NSLocalizedString(@"Error", @"Error loading following state");
             break;
         case FollowFollowing:
             title = NSLocalizedString(@"Following", @"Following");
-            image = [UIImage imageNamed:@"following.png"];
             break;
         case FollowNotFollowing:
             title = NSLocalizedString(@"Follow", @"Follow");
-            image = [UIImage imageNamed:@"follow.png"];
             break;
     }
-    
-    if( followButtonState != FollowLoading && self.activityIndicator ) {
-        [self.activityIndicator stopAnimating];
-        [self.activityIndicator removeFromSuperview];
-        self.activityIndicator = nil;
-    }
 
-    [self setTitle:title forState:UIControlStateNormal];
-    [self setImage:image forState:UIControlStateNormal];
-    
-    if( image ) 
-        self.imageEdgeInsets = UIEdgeInsetsMake( 0, 5, 0, 5 );
-    else
-        self.imageEdgeInsets = UIEdgeInsetsZero;
+    [self setTitle:title];
 }
 
 - (void) loadFollowState {
     if( !userId || !parentId )
         return;
+    
+    [self changeStateToState:FollowLoading isUserAction:NO];
     
     NSString *query = [NSString stringWithFormat:@"select id from EntitySubscription where subscriberid='%@' and parentid='%@' limit 1",
                        userId, parentId];
@@ -131,32 +108,45 @@
         } @catch( NSException *e ) {
             [[AccountUtil sharedAccountUtil] receivedException:e];
             self.followButtonState = FollowError;
-            [self loadTitle];            
+            [self loadTitle];         
+            
+            if( [self.delegate respondsToSelector:@selector(followButtonDidReceiveException:exception:)] )
+                [self.delegate followButtonDidReceiveException:self exception:e];
+            
             return;
         }
         
         dispatch_async(dispatch_get_main_queue(), ^(void) {
             if( [[qr records] count] > 0 ) {
-                self.followButtonState = FollowFollowing;
                 self.followId = [[[qr records] objectAtIndex:0] fieldValue:@"Id"];
+                [self changeStateToState:FollowFollowing isUserAction:NO];
             } else
-                self.followButtonState = FollowNotFollowing;
-            
-            [self loadTitle];
+                [self changeStateToState:FollowNotFollowing isUserAction:NO];
         });
     });
+}
+
+- (void) changeStateToState:(enum FollowButtonState)state isUserAction:(BOOL)isUserAction {
+    if( [self.delegate respondsToSelector:@selector(followButtonWillChangeState:toState:isUserAction:)] )
+        [self.delegate followButtonWillChangeState:self toState:state isUserAction:isUserAction];
+    
+    self.followButtonState = state;
+    [self loadTitle];
+    
+    if( [self.delegate respondsToSelector:@selector(followButtonDidChangeState:toState:isUserAction:)] )
+        [self.delegate followButtonDidChangeState:self toState:self.followButtonState isUserAction:isUserAction];
 }
 
 - (void) toggleFollow {
     if( self.followButtonState == FollowFollowing ) {
         if( !followId )
             return;
+        
+        [self changeStateToState:FollowLoading isUserAction:YES];
                 
         // DELETE
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0), ^(void) {
             NSArray *dr = nil;
-            self.followButtonState = FollowLoading;
-            [self loadTitle];
             
             NSLog(@"DELETING %@", self.followId);
             
@@ -165,32 +155,31 @@
             } @catch( NSException *e ) {
                 [[AccountUtil sharedAccountUtil] receivedException:e];
                 self.followButtonState = FollowFollowing;
-                [self loadTitle];            
+                [self loadTitle];      
+                
+                if( [self.delegate respondsToSelector:@selector(followButtonDidReceiveException:exception:)] )
+                    [self.delegate followButtonDidReceiveException:self exception:e];
+                
                 return;
             }
             
             dispatch_async(dispatch_get_main_queue(), ^(void) {                
                 if( [dr count] == 1 && [[dr objectAtIndex:0] success] ) {
-                    self.followButtonState = FollowNotFollowing;
+                    [self changeStateToState:FollowNotFollowing isUserAction:YES];
                     followId = nil;
                     NSLog(@"DELETE success");
-                    
-                    if( target && action && [target respondsToSelector:action] )
-                        [target performSelector:action];
                 }
-                
-                [self loadTitle];
             });
         });
     } else if( self.followButtonState == FollowNotFollowing ) {
         // INSERT
+        
+        [self changeStateToState:FollowLoading isUserAction:YES];
+        
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0), ^(void) {
             ZKSObject *followObject = [[ZKSObject alloc] initWithType:@"EntitySubscription"];
             [followObject setFieldValue:parentId field:@"parentId"];
             [followObject setFieldValue:userId field:@"subscriberId"];            
-            
-            self.followButtonState = FollowLoading;
-            [self loadTitle];
             
             NSLog(@"INSERTING %@", followObject);
             
@@ -202,21 +191,21 @@
                 [[AccountUtil sharedAccountUtil] receivedException:e];
                 self.followButtonState = FollowNotFollowing;
                 [self loadTitle];            
+                
+                if( [self.delegate respondsToSelector:@selector(followButtonDidReceiveException:exception:)] )
+                    [self.delegate followButtonDidReceiveException:self exception:e];
+                
                 return;
             }
             
             dispatch_async(dispatch_get_main_queue(), ^(void) {
                 if( [results count] == 1 && [[results objectAtIndex:0] success] ) {
-                    self.followButtonState = FollowFollowing;
                     self.followId = [[results objectAtIndex:0] id];
                     
                     NSLog(@"INSERT success");
                     
-                    if( target && action && [target respondsToSelector:action] )
-                        [target performSelector:action];
+                    [self changeStateToState:FollowFollowing isUserAction:YES];
                 }
-                
-                [self loadTitle];
             });
         });
     } else {
@@ -227,17 +216,21 @@
 
 // Capture tapping a field
 - (void) buttonTapped:(FollowButton *)sender {    
-    UIActionSheet *sheet = nil;
+    if( self.sheet ) {
+        [self.sheet dismissWithClickedButtonIndex:-1 animated:YES];
+        self.sheet = nil;
+        return;
+    }
     
     switch( followButtonState ) {
         case FollowFollowing:
-            sheet = [[[UIActionSheet alloc] initWithTitle:nil
+            self.sheet = [[[UIActionSheet alloc] initWithTitle:nil
                                                   delegate:self
                                          cancelButtonTitle:NSLocalizedString(@"Cancel", @"Cancel")
                                     destructiveButtonTitle:NSLocalizedString(@"Unfollow", @"Unfollow")
                                          otherButtonTitles:nil] autorelease];
             
-            [sheet showFromRect:sender.frame inView:self.superview animated:YES];
+            [sheet showFromBarButtonItem:self animated:YES];
             break;
         case FollowNotFollowing:
             [self toggleFollow];
@@ -254,13 +247,15 @@
     if( buttonIndex == 0 ) {
         [self toggleFollow];
     }
+    
+    self.sheet = nil;
 }
 
 - (void)dealloc {
     [userId release];
-    [activityIndicator release];
     [parentId release];
     [followId release];
+    [sheet release];
     [super dealloc];
 }
 

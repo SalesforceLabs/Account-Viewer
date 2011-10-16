@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -83,8 +83,11 @@
         
         curY += self.scrollView.frame.size.height + 10;
         
-        NSArray *images = [NSArray arrayWithObjects:[UIImage imageNamed:@"firstrun1.png"], [UIImage imageNamed:@"firstrun2.png"],
-                        [UIImage imageNamed:@"firstrun3.png"], [UIImage imageNamed:@"firstrun4.png"], nil];
+        NSArray *images = [NSArray arrayWithObjects:
+                           [UIImage imageNamed:@"firstrun1.png"], 
+                           [UIImage imageNamed:@"firstrun2.png"],
+                           [UIImage imageNamed:@"firstrun3.png"], 
+                           [UIImage imageNamed:@"firstrun4.png"], nil];
         NSArray *imageCaptions = [NSArray arrayWithObjects:
                                   NSLocalizedString(@"Save your most important Accounts to secure offline access.", @"first-run 1"),
                                   NSLocalizedString(@"Read the latest news headlines for your Accounts.", @"first-run 2"),

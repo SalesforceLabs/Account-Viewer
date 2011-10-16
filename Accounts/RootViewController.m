@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -42,6 +42,7 @@
 #import "AccountFirstRunController.h"
 #import "SimpleKeychain.h"
 #import "PRPConnection.h"
+#import "CloudyLoadingModal.h"
 
 @implementation RootViewController
 
@@ -94,7 +95,7 @@ BOOL useClientLogin = NO;
 
 - (void) addSubNavControllers {
     if( !self.subNavControllers ) {
-        self.subNavControllers = [[[NSMutableArray alloc] initWithCapacity:SubNavTableNumTypes] autorelease];
+        self.subNavControllers = [NSMutableArray arrayWithCapacity:SubNavTableNumTypes];
         
         for( int x = 0; x < SubNavTableNumTypes; x++ ) {
             SubNavViewController *snvc = [[SubNavViewController alloc] initWithTableType:x];
@@ -157,24 +158,49 @@ BOOL useClientLogin = NO;
         [snvc selectAccountWithId:accountId];
 }
 
+- (SubNavViewController *) currentSubNavViewController {
+    if( !self.subNavControllers )
+        return nil;
+    
+    UIView *topView = [[self.view subviews] lastObject];
+    
+    for( SubNavViewController *snvc in self.subNavControllers )
+        if( [snvc.view isEqual:topView] )
+            return snvc;
+    
+    return nil;
+}
+
+#pragma mark - loading modals
+
+- (void) showLoadingModal {
+    CloudyLoadingModal *clm = [[CloudyLoadingModal alloc] init];
+    
+    [self.splitViewController presentModalViewController:clm animated:YES];
+    [clm release];
+}
+
+- (void) hideLoadingModal {
+    [self.splitViewController dismissModalViewControllerAnimated:YES];
+}
+
 #pragma mark - Split view controller
 
-+ (BOOL)isPortrait {
++ (BOOL)isPortrait {    
     return UIInterfaceOrientationIsPortrait([[UIApplication sharedApplication] statusBarOrientation]);
 }
 
 - (void)splitViewController:(MGSplitViewController *)svc willHideViewController:(UIViewController *)aViewController withBarButtonItem:(UIBarButtonItem *)barButtonItem forPopoverController: (UIPopoverController *)pc {
-        
-    barButtonItem.title = NSLocalizedString(@"Accounts",@"Accounts button");   
+            
+    barButtonItem.title = NSLocalizedString(@"Accounts",@"Accounts button");  
     
     self.popoverController = pc;
     
     [self.detailViewController setPopoverButton:barButtonItem];    
 }
 
-// Called when the view is shown again in the split view, invalidating the button and popover controller.
 - (void)splitViewController:(MGSplitViewController *)svc willShowViewController:(UIViewController *)aViewController invalidatingBarButtonItem:(UIBarButtonItem *)barButtonItem {  
-    
+        
     self.popoverController = nil;
     [self.detailViewController setPopoverButton:nil];
 }
@@ -190,11 +216,11 @@ BOOL useClientLogin = NO;
         [self.popoverController dismissPopoverAnimated:YES];
     
     // log in
-    if( ![self isLoggedIn] ) {   
+    if( ![self isLoggedIn] ) {           
         if ( useClientLogin ) {
             [[AccountUtil sharedAccountUtil] startNetworkAction];
 
-            [DSBezelActivityView newActivityViewForView:self.splitViewController.view withLabel:NSLocalizedString(@"Authenticating",@"Authenticating")];
+            [self showLoadingModal];
             
             dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0), ^(void) {
                 ZKLoginResult *lr = nil;
@@ -203,7 +229,7 @@ BOOL useClientLogin = NO;
                     lr = [client login:clientUserName password:clientPassword];
                 } @catch( NSException *e ) {
                     [[AccountUtil sharedAccountUtil] endNetworkAction];
-                    [DSBezelActivityView removeViewAnimated:YES];
+                    [self hideLoadingModal];
                     [[AccountUtil sharedAccountUtil] receivedException:e];
                     
                     [PRPAlertView showWithTitle:NSLocalizedString(@"Alert",@"Alert")
@@ -218,7 +244,10 @@ BOOL useClientLogin = NO;
             });
         } else { // OAuth
             if( [[self class] hasStoredOAuthRefreshToken] ) {               
-                [DSBezelActivityView newActivityViewForView:self.splitViewController.view withLabel:NSLocalizedString(@"Authenticating",@"Authenticating")];
+                [self showLoadingModal];
+                
+                // Logout fallback
+                [self performSelector:@selector(doLogout) withObject:nil afterDelay:45];
                 
                 // use our saved OAuth token  
                 dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0), ^(void) {
@@ -227,13 +256,19 @@ BOOL useClientLogin = NO;
                                               authUrl:[NSURL URLWithString:[SimpleKeychain load:instanceURLKey]]
                                      oAuthConsumerKey:OAuthClientID];
                     } @catch( NSException *e ) {
+                        [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(doLogout) object:nil];
                         [[AccountUtil sharedAccountUtil] receivedException:e];
                         [PRPAlertView showWithTitle:NSLocalizedString(@"Alert",@"Alert")
                                             message:NSLocalizedString(@"Failed to authenticate.",@"Generic OAuth failure")
                                         buttonTitle:NSLocalizedString(@"OK",@"OK")];
+                        [self doLogout];
+                        
+                        return;
                     }
                     
                     dispatch_async(dispatch_get_main_queue(), ^(void) {
+                        [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(doLogout) object:nil];
+                        
                         if( [client loggedIn] ) {
                             NSLog(@"OAuth session successfully resumed");
                             
@@ -241,8 +276,8 @@ BOOL useClientLogin = NO;
                         } else {
                             // OAuth failed for some reason
                             NSLog(@"OAuth session failed to resume");
-                            [DSBezelActivityView removeViewAnimated:YES];
-                            [self doLogout];
+                            [self performSelector:@selector(hideLoadingModal) withObject:nil afterDelay:5.0];
+                            [self performSelector:@selector(doLogout) withObject:nil afterDelay:5.5];
                         }
                     });
                 });
@@ -273,10 +308,10 @@ BOOL useClientLogin = NO;
                             message:NSLocalizedString(@"Your password is expired. Please reset it at login.salesforce.com.", @"Password needs reset")
                         buttonTitle:NSLocalizedString(@"OK", @"OK")];
         
-        [DSBezelActivityView removeViewAnimated:YES];
+        [self hideLoadingModal];
     } else if( !result || error ) {
         [[AccountUtil sharedAccountUtil] receivedAPIError:error];
-        [DSBezelActivityView removeViewAnimated:YES];
+        [self hideLoadingModal];
     } else {
         NSLog(@"logged in using basic auth"); 
         
@@ -298,6 +333,9 @@ BOOL useClientLogin = NO;
             [PRPAlertView showWithTitle:NSLocalizedString(@"Alert",@"Alert")
                                 message:NSLocalizedString(@"Failed to authenticate.", @"Generic OAuth failure")
                             buttonTitle:NSLocalizedString(@"OK", @"OK")];
+            
+            [self doLogout];
+            return;
         }
         
         if( [client loggedIn] ) {
@@ -306,17 +344,19 @@ BOOL useClientLogin = NO;
             [SimpleKeychain save:refreshTokenKey data:[controller refreshToken]];
             [SimpleKeychain save:instanceURLKey data:[controller instanceUrl]];
             
-            [DSBezelActivityView newActivityViewForView:self.splitViewController.view withLabel:NSLocalizedString(@"Authenticating", @"Authenticating")];
-            [self hideLogin];
+            [self hideLoginAnimated:NO];
+            [self showLoadingModal];
             [self appDidLogin];
         } else {
             NSLog(@"error logging in with oauth");
-            [self hideLogin];
+            [self hideLoginAnimated:YES];
+            [self doLogout];
         }
         
     } else if (error) {
         [[AccountUtil sharedAccountUtil] receivedAPIError:error];
-        [self hideLogin];
+        [self hideLoginAnimated:YES];
+        [self doLogout];
     }
 }
 
@@ -327,8 +367,8 @@ BOOL useClientLogin = NO;
 	}
 }
 
-- (void)hideLogin {
-    [self.splitViewController dismissModalViewControllerAnimated:YES];
+- (void)hideLoginAnimated:(BOOL)animated {
+    [self.splitViewController dismissModalViewControllerAnimated:animated];
         
 	[[NSURLCache sharedURLCache] removeAllCachedResponses];
 	[self removeApplicationLibraryDirectoryWithDirectory:@"Caches"];
@@ -356,90 +396,87 @@ BOOL useClientLogin = NO;
 
 - (void) appDidLogin {    
     NSLog(@"app did login");  
-        
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0), ^(void) {
-        BOOL metadataFail = NO;
-        
-        // describe to determine if chatter is enabled    
-        @try {
-            [[AccountUtil sharedAccountUtil] setChatterEnabled:YES];
-            [client describeSObject:@"CollaborationGroup"];
-        } @catch( NSException *e ) {
-            [[AccountUtil sharedAccountUtil] setChatterEnabled:NO];
-        }
-                
-        // Grab my user info
-        ZKUserInfo *userinfo = nil;
-        
-        @try {
-            userinfo = [client getUserInfo];
-            [client setUserInfo:userinfo]; 
-        } @catch( NSException *e ) {
-            [[AccountUtil sharedAccountUtil] receivedException:e];
-            metadataFail = YES;
-        }        
-        
-        // Get the metadata description of the account object in this org 
-        ZKDescribeSObject *describe = nil;
-        
-        @try {
-            describe = [client describeSObject:@"Account"];
-            [[AccountUtil sharedAccountUtil] describeAccountResult:describe error:nil context:nil];
-        } @catch( NSException *e ) {
-            [[AccountUtil sharedAccountUtil] receivedException:e];
-            metadataFail = YES;
-        }
-                
-        // Get the metadata description of the account layouts in this org  
-        ZKDescribeLayoutResult *layout = nil;
-        
-        @try {
-            layout = [client describeLayout:@"Account" recordTypeIds:nil];
-            [[AccountUtil sharedAccountUtil] describeLayoutResult:layout error:nil context:nil];
-        } @catch( NSException *e ) {
-            [[AccountUtil sharedAccountUtil] receivedException:e];
-            metadataFail = YES;
-        }
-        
-        dispatch_async(dispatch_get_main_queue(), ^(void) {  
-            [DSBezelActivityView removeViewAnimated:YES];
+                    
+    // Grab my user info
+    ZKUserInfo *userinfo = nil;
+    
+    @try {
+        userinfo = [client getUserInfo];
+        [client setUserInfo:userinfo]; 
+    } @catch( NSException *e ) {
+        [[AccountUtil sharedAccountUtil] receivedException:e];
+        [self doLogout];
+        return;
+    }        
+    
+    [[AccountUtil sharedAccountUtil] setClient:client];
+    
+    // Global describe to build a list of chatter-enabled sObjects
+    [[AccountUtil sharedAccountUtil] describeGlobal:^(void) {
+        [self appDidCompleteLoginMetadataOperation];
+        }];
+    
+    // Get the metadata description of the account object in this org         
+    [[AccountUtil sharedAccountUtil] describesObject:@"Account" completeBlock:^(ZKDescribeSObject * sObject) {
+        [self appDidCompleteLoginMetadataOperation];
+        }];
             
-            if( metadataFail ) {
-                [PRPAlertView showWithTitle:NSLocalizedString(@"Alert", @"Alert")
-                                    message:NSLocalizedString(@"There was an error logging in.", @"Generic login error")
-                                buttonTitle:NSLocalizedString(@"OK", @"OK")];
-                [self doLogout];
-                return;
-            }
-            
-            [[AccountUtil sharedAccountUtil] setClient:client];
-            [self addSubNavControllers];
-            
-            [self switchSubNavView:SubNavOwnedAccounts];
-            [self.detailViewController eventLogInOrOut];            
-        });
-    });
+    // Get the metadata description of the account layouts in this org          
+    [[AccountUtil sharedAccountUtil] describeLayoutForsObject:@"Account" completeBlock:^(ZKDescribeLayoutResult * layoutDescribe) {
+        [self appDidCompleteLoginMetadataOperation];
+        }];
+    
+    // Logout fallback
+    [self performSelector:@selector(doLogout) withObject:nil afterDelay:45];
+}
+
+// Delay completing the login until crucial metadata operations, namely describing Account
+// and its layout, are complete.
+- (void) appDidCompleteLoginMetadataOperation {
+    if( !metadataComplete )
+        metadataComplete = 1;
+    else
+        metadataComplete++;
+    
+    if( metadataComplete < 3 )
+        return;
+    
+    [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(doLogout) object:nil];
+    
+    metadataComplete = 0;
+    NSLog(@"app did login async complete");
+    
+    [self addSubNavControllers];
+    [self switchSubNavView:SubNavOwnedAccounts];
+    [self.detailViewController eventLogInOrOut];    
+    [self performSelector:@selector(hideLoadingModal) withObject:nil afterDelay:3.0];
 }
 
 - (void) doLogout {
     NSLog(@"app did logout");
     
+    [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(doLogout) object:nil];
+    
     // Perform actual logout
     [client setAuthenticationInfo:nil];
     [client setUserInfo:nil];
     [client flushCachedDescribes];
+    metadataComplete = 0;
     
     // Wipe our stored access and refresh tokens
     [SimpleKeychain delete:refreshTokenKey];
     [SimpleKeychain delete:instanceURLKey];
     
     // wipe our caches for geolocations and photos
-    [[AccountUtil sharedAccountUtil] emptyCaches];
+    [[AccountUtil sharedAccountUtil] emptyCaches:YES];
     
-    //[self removeSubNavControllers];
-    //[self addLocalAccountTable];
     [self addSubNavControllers];
     [self switchSubNavView:SubNavLocalAccounts];
+    
+    // wipe remote records
+    for( SubNavViewController *snvc in self.subNavControllers )
+        if( snvc.subNavTableType != SubNavLocalAccounts )
+            [snvc clearRecords];
     
     // on the detail view, return to the default detailview screen
     [self.detailViewController eventLogInOrOut];
@@ -550,7 +587,7 @@ BOOL useClientLogin = NO;
         
         vc.navigationItem.leftBarButtonItem = [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCancel
                                                                                              target:self
-                                                                                             action:@selector(hideLogin)] autorelease];
+                                                                                             action:@selector(doLogout)] autorelease];
         
         UINavigationController *aNavController = [[UINavigationController alloc] initWithRootViewController:vc];
         

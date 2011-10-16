@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -52,13 +52,15 @@
         self.contentView.backgroundColor = [UIColor clearColor];
         self.backgroundColor = [UIColor clearColor];
         
-        self.gridLabel = [[[UILabel alloc] initWithFrame:CGRectZero] autorelease];
-        self.gridLabel.backgroundColor = [UIColor clearColor];
-        self.gridLabel.textAlignment = UITextAlignmentLeft;
-        self.gridLabel.font = [UIFont fontWithName:@"HelveticaNeue-Bold" size:13];
-        self.gridLabel.textColor = [UIColor lightGrayColor];
-        
-        [self.contentView addSubview:gridLabel];      
+        if( !self.gridLabel ) {
+            self.gridLabel = [[[UILabel alloc] initWithFrame:CGRectZero] autorelease];
+            self.gridLabel.backgroundColor = [UIColor clearColor];
+            self.gridLabel.textAlignment = UITextAlignmentLeft;
+            self.gridLabel.font = [UIFont fontWithName:@"HelveticaNeue-Bold" size:13];
+            self.gridLabel.textColor = [UIColor lightGrayColor];
+            
+            [self.contentView addSubview:gridLabel];      
+        }
     }
     
     return self;
@@ -95,21 +97,24 @@
     [self.gridLabel setFrame:r];
     
     FieldPopoverButton *gb = (FieldPopoverButton *)self.gridButton;
-    [gb sizeToFit];
+    
+    if( gb ) {
+        [gb sizeToFit];
 
-    r = gb.frame;    
-    r.origin.x = 10;
-    r.origin.y = self.gridLabel.frame.origin.y + self.gridLabel.frame.size.height + 2;
+        r = gb.frame;    
+        r.origin.x = 10;
+        r.origin.y = self.gridLabel.frame.origin.y + self.gridLabel.frame.size.height + 2;
 
-    CGSize s = [[gb titleForState:UIControlStateNormal] sizeWithFont:gb.titleLabel.font constrainedToSize:CGSizeMake( self.contentView.frame.size.width - 15, 25)];
-    
-    if( s.width < 10 )
-        s.width = self.contentView.frame.size.width - 15;
-    
-    r.size.height = s.height;
-    r.size.width = s.width;
-    
-    [gb setFrame:r];
+        CGSize s = [[gb titleForState:UIControlStateNormal] sizeWithFont:gb.titleLabel.font constrainedToSize:CGSizeMake( self.contentView.frame.size.width - 15, 25)];
+        
+        if( s.width < 10 )
+            s.width = self.contentView.frame.size.width - 15;
+        
+        r.size.height = s.height;
+        r.size.width = s.width;
+        
+        [gb setFrame:r];
+    }
 }
 
 - (void) dealloc {

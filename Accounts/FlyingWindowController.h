@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -46,6 +46,9 @@ enum FlyingWindowTypes {
     FlyingWindowDetail,
     FlyingWindowRecordOverview,
     FlyingWindowWebView,
+    FlyingWindowListofRelatedLists,
+    FlyingWindowRelatedListGrid,
+    FlyingWindowRelatedRecordView
 };
 
 @property enum FlyingWindowTypes flyingWindowType;
@@ -69,6 +72,12 @@ enum FlyingWindowTypes {
 - (void) slideFlyingWindowToPoint:(CGPoint) point;
 
 - (void) setDimmerAlpha:(float)alpha;
+
+- (void) setFrame:(CGRect)frame;
+
+// Return true if this is a larger window that overlaps the left-side flying window.
+// Webviews, Related Lists do this
+- (BOOL) isLargeWindow;
 
 - (CGPoint) originPoint;
 

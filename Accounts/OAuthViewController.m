@@ -156,7 +156,7 @@
 #pragma mark UIWebViewDelegate
 
 - (void) webView:(UIWebView *)webView didFailLoadWithError:(NSError *)error {
-    [DSBezelActivityView removeViewAnimated:YES];
+    [DSBezelActivityView removeViewAnimated:NO];
     
     if( [error code] != -999 )
         [PRPAlertView showWithTitle:NSLocalizedString(@"Alert",@"Alert")

@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -31,12 +31,13 @@
 
 @implementation TextCell
 
-@synthesize textField, accountAddEditController, fieldLabel, validationType, fieldName;
+@synthesize textField, delegate, fieldLabel, validationType, fieldName, cellType, textView;
 
-static int maxCharacters = 255;
+#pragma mark - setup
 
 - (void)dealloc {
     [textField release], textField = nil;
+    [textView release], textView = nil;
     [fieldLabel release], fieldLabel = nil;
     [fieldName release], fieldName = nil;
     [super dealloc];
@@ -46,17 +47,33 @@ static int maxCharacters = 255;
     if ((self = [super initWithStyle:UITableViewCellStyleDefault reuseIdentifier:cellID])) {
         self.selectionStyle = UITableViewCellSelectionStyleNone;
         self.textLabel.textColor = [UIColor darkGrayColor];
-        self.textLabel.adjustsFontSizeToFitWidth = YES;
+        self.textLabel.adjustsFontSizeToFitWidth = NO;
         self.textLabel.textAlignment = UITextAlignmentRight;
+        self.textLabel.text = @"";
+        self.textLabel.font = [UIFont boldSystemFontOfSize:16];
         
-        self.textField = [[[UITextField alloc] initWithFrame:CGRectMake(50, self.textLabel.frame.origin.y, 310, 22)] autorelease];
+        maxLength = 100;
+        maxLabelWidth = 120;
+    }
+    
+    return self;
+}
+
+- (void) setTextCellType:(enum TextCellTypes)textCellType {
+    self.cellType = textCellType;
+            
+    if( self.cellType == TextFieldCell && !self.textField ) {
+        self.textField = [[[UITextField alloc] initWithFrame:CGRectMake(0, 0, 310, 22)] autorelease];
         textField.delegate = self;
         textField.textAlignment = UITextAlignmentLeft;
         textField.returnKeyType = UIReturnKeyDone;
         textField.autocorrectionType = UITextAutocorrectionTypeNo;
         textField.clearButtonMode = UITextFieldViewModeWhileEditing;
         textField.clearsOnBeginEditing = NO;
-        textField.textColor = RGB( 57.0f, 85.0f, 135.0f );
+        textField.textColor = AppTextCellColor;
+        textField.text = @"";
+        textField.placeholder = @"";
+        textField.font = [UIFont systemFontOfSize:16];
         
         [textField addTarget:self action:@selector(textFieldDidChange:) forControlEvents:UIControlEventEditingChanged];
         
@@ -65,38 +82,79 @@ static int maxCharacters = 255;
             forControlEvents:UIControlEventEditingDidEndOnExit];
         
         self.accessoryView = self.textField;
+    } else if( self.cellType == TextViewCell && !self.textView ) {
+        self.textView = [[[UITextView alloc] initWithFrame:CGRectMake(0, 0, 330, 22)] autorelease];
+        textView.delegate = self;
+        textView.textAlignment = UITextAlignmentLeft;
+        textView.returnKeyType = UIReturnKeyDone;
+        textView.autocorrectionType = UITextAutocorrectionTypeNo;
+        textView.textColor = AppTextCellColor;
+        textView.text = @"";
+        textView.font = [UIFont systemFontOfSize:16]; 
+        textView.editable = YES;
+                
+        self.accessoryView = self.textView;
     }
-    
-    return self;
 }
 
-- (void) setKeyboardType:(UIKeyboardType)type {
-    [textField setKeyboardType:type];
-}
-
-- (void) textFieldDidChange:(id)sender {
-    [self.accountAddEditController textFieldValueChanged:self field:sender];
-}
-
-- (void) textFieldDidEndEditing:(UITextField *)tf {
-    [tf resignFirstResponder];
-    [self.accountAddEditController textFieldValueChanged:self field:tf];
-}
-
-- (BOOL) textFieldShouldReturn:(UITextField *)tf {
-    [tf resignFirstResponder];
-    
-    [self.accountAddEditController textFieldValueChanged:self field:tf];
+- (BOOL) becomeFirstResponder {
+    if( self.cellType == TextFieldCell )
+        [self.textField becomeFirstResponder];
+    else
+        [self.textView becomeFirstResponder];
     
     return YES;
 }
 
-- (void) textFieldFinished:(id)sender {
-    [sender resignFirstResponder];
+- (BOOL) resignFirstResponder {
+    if( self.cellType == TextFieldCell )
+        return [self.textField resignFirstResponder];
+    else
+        return [self.textView resignFirstResponder];
 }
 
-- (BOOL)textField:(UITextField *)tf shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string {    
-    if( range.location >= maxCharacters )
+- (void) setKeyboardType:(UIKeyboardType)type {
+    if( self.cellType == TextFieldCell )
+        [self.textField setKeyboardType:type];
+    else
+        [self.textView setKeyboardType:type];
+}
+
+- (void) setCellText:(NSString *)text {
+    if( self.cellType == TextFieldCell )
+        self.textField.text = text;
+    else
+        self.textView.text = text;
+}
+
+- (NSString *) getCellText {
+    NSString *text = nil;
+    
+    if( self.cellType == TextFieldCell )
+        text = self.textField.text;
+    else
+        text = self.textView.text;
+    
+    if( [text length] > maxLength )
+        return [text substringToIndex:maxLength];
+    
+    return text;
+}
+
+- (void) setMaxLength:(int) length {
+    maxLength = length;
+}
+
+- (int) getMaxLength {
+    return maxLength;
+}
+
+- (void) setMaxLabelWidth:(float)width {
+    maxLabelWidth = width;
+}
+
+- (BOOL) shouldChangeCharacters:(NSString *)characters range:(NSRange)range replacementString:(NSString *)string {    
+    if( range.location >= maxLength || range.location + [string length] >= maxLength )
         return NO;
     
     if( !validationType || validationType == ValidateNone )
@@ -112,7 +170,7 @@ static int maxCharacters = 255;
             break;
         case ValidateInteger:
         case ValidatePhone:
-            validChars = [NSMutableCharacterSet characterSetWithCharactersInString:@"0123456789"];
+            validChars = [NSMutableCharacterSet characterSetWithCharactersInString:@"0123456789+-() "];
             break;
         case ValidateZipCode:
             validChars = [NSMutableCharacterSet characterSetWithCharactersInString:@"0123456789-"];
@@ -124,29 +182,34 @@ static int maxCharacters = 255;
             validChars = [NSMutableCharacterSet alphanumericCharacterSet];
             [validChars formUnionWithCharacterSet:[NSCharacterSet punctuationCharacterSet]];
             break;
-             
+            
         default: break;
     }
     
     // Formats to (XXX) XXX-XXXX
-    if( validationType == ValidatePhone ) {
-        int length = [self getLength:tf.text];
+    // Removed this so we can support international numbers too
+    /*if( validationType == ValidatePhone ) {
+        int length = [self getLength:characters];
         
         if(length == 10) {
             if(range.length == 0)
                 return NO;
         } else if(length == 3) {
-            NSString *num = [self formatNumber:tf.text];
-            tf.text = [NSString stringWithFormat:@"(%@) ",num];
+            NSString *num = [self formatNumber:characters];
+
+            [self setCellText:[NSString stringWithFormat:@"(%@) ",num]];
+            
             if(range.length > 0)
-                textField.text = [NSString stringWithFormat:@"%@",[num substringToIndex:3]];
+                [self setCellText:[NSString stringWithFormat:@"%@",[num substringToIndex:3]]];
         } else if(length == 6) {
-            NSString *num = [self formatNumber:tf.text];
-            tf.text = [NSString stringWithFormat:@"(%@) %@-",[num  substringToIndex:3],[num substringFromIndex:3]];
+            NSString *num = [self formatNumber:characters];
+            
+            [self setCellText:[NSString stringWithFormat:@"(%@) %@-",[num  substringToIndex:3],[num substringFromIndex:3]]];
+            
             if(range.length > 0)
-                tf.text = [NSString stringWithFormat:@"(%@) %@",[num substringToIndex:3],[num substringFromIndex:3]];
+                [self setCellText:[NSString stringWithFormat:@"(%@) %@",[num substringToIndex:3],[num substringFromIndex:3]]];
         }
-    }
+    }*/
     
     if( !validChars )
         return YES;
@@ -156,6 +219,73 @@ static int maxCharacters = 255;
     string = [[string lowercaseString] decomposedStringWithCanonicalMapping];
     
     return [[string componentsSeparatedByCharactersInSet:unacceptedInput] count] == 1;
+}
+
+#pragma mark - textfield delegate
+
+- (void) textFieldDidChange:(id)sender {
+    if( [self.delegate respondsToSelector:@selector(textCellValueChanged:)] )
+        [self.delegate textCellValueChanged:self];
+}
+
+- (void) textFieldDidEndEditing:(UITextField *)tf {
+    [self resignFirstResponder];
+    
+    if( [self.delegate respondsToSelector:@selector(textCellValueChanged:)] )
+        [self.delegate textCellValueChanged:self];
+}
+
+- (BOOL) textFieldShouldReturn:(UITextField *)tf {
+    [self resignFirstResponder];
+    
+    if( [self.delegate respondsToSelector:@selector(textCellValueChanged:)] )
+        [self.delegate textCellValueChanged:self];
+    
+    return YES;
+}
+
+- (void) textFieldFinished:(id)sender {
+    [sender resignFirstResponder];
+}
+
+- (BOOL)textField:(UITextField *)tf shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string {    
+    return [self shouldChangeCharacters:tf.text range:range replacementString:string];
+}
+
+#pragma mark - textview delegate
+
+- (BOOL)textView:(UITextView *)tv shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text {
+    if( [text isEqualToString:@"\n"] ) {
+        [self textViewDidEndEditing:tv];
+        return NO;
+    }
+    
+    return [self shouldChangeCharacters:tv.text range:range replacementString:text];
+}
+
+- (void)textViewDidChange:(UITextView *)tv {
+    if( [self.delegate respondsToSelector:@selector(textCellValueChanged:)] )
+        [self.delegate textCellValueChanged:self];
+}
+
+- (void)textViewDidEndEditing:(UITextView *)tv { 
+    [self resignFirstResponder];
+    
+    if( [self.delegate respondsToSelector:@selector(textCellValueChanged:)] )
+        [self.delegate textCellValueChanged:self];
+}
+
+- (void)textViewDidChangeSelection:(UITextView *)tv {
+    if( [self.delegate respondsToSelector:@selector(textCellValueChanged:)] )
+        [self.delegate textCellValueChanged:self];
+}
+
+#pragma mark - misc
+
+- (void) layoutSubviews {
+    [super layoutSubviews];
+    
+    self.textLabel.frame = CGRectMake( 0, ( self.cellType == TextFieldCell ? 10 : 6 ), maxLabelWidth, 22 );
 }
 
 // http://stackoverflow.com/questions/6052966/phone-number-validation-formatting-on-iphone-ios

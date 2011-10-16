@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -36,7 +36,7 @@
 @synthesize actionSheet, commType, detailViewController;
 
 static NSString *facetimeFormat = @"facetime://%@";
-static NSString *skypeFormat = @"skype://%@?call";
+static NSString *skypeFormat = @"skype:%@?call";
 
 + (id) commButtonWithType:(enum CommType)type withRecord:(NSDictionary *)record {
     CommButton *button = [self buttonWithType:UIButtonTypeCustom];
@@ -71,7 +71,7 @@ static NSString *skypeFormat = @"skype://%@?call";
     NSArray *callFields = [NSArray arrayWithObjects:@"Phone", @"Fax", @"MobilePhone", nil];
     NSArray *emailFields = [NSArray arrayWithObjects:@"Email", nil];
     NSArray *webFields = [NSArray arrayWithObjects:@"Website", nil];
-    ZKDescribeSObject *desc = [[AccountUtil sharedAccountUtil] getAccountDescribe];
+    ZKDescribeSObject *desc = [[AccountUtil sharedAccountUtil] describeSObjectFromCache:@"Account"];
     ZKDescribeField *fDesc = nil;
     NSString *fValue = nil;
     
@@ -88,18 +88,18 @@ static NSString *skypeFormat = @"skype://%@?call";
             case CommSkype:
                 if( [callFields containsObject:field] ||
                    ( fDesc && [[fDesc type] isEqualToString:@"phone"] ) )
-                    [button.actionSheet addButtonWithTitle:[record objectForKey:field]];
+                    [button.actionSheet addButtonWithTitle:fValue];
                 break;
             case CommEmail:
                 if( [emailFields containsObject:field] || 
                    ( fDesc && [[fDesc type] isEqualToString:@"email"] ) )
-                    [button.actionSheet addButtonWithTitle:[record objectForKey:field]];
+                    [button.actionSheet addButtonWithTitle:fValue];
                 break;
             case CommFacetime:
                 if( [callFields containsObject:field] || 
                     [emailFields containsObject:field] ||
-                   ( fDesc && [[fDesc type] isEqualToString:@"phone"] || [[fDesc type] isEqualToString:@"email"] ) )
-                    [button.actionSheet addButtonWithTitle:[record objectForKey:field]];
+                    ( fDesc && ( [[fDesc type] isEqualToString:@"phone"] || [[fDesc type] isEqualToString:@"email"] ) ) )
+                    [button.actionSheet addButtonWithTitle:fValue];
                 break;                    
             case CommWeb:
                 if( [webFields containsObject:field] || 

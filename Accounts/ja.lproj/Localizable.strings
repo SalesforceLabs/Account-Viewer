@@ -1,3 +1,28 @@
+/* v1.1 */
+"About Account Viewer" = "Account Viewer について";
+"Account News" = "Account News";
+"Account, Group, or User" = "取引先、グループ、またはユーザ";
+"Ask the Community" = "コミュニティに質問する";
+"User or Group" = "ユーザまたはグループ";
+"Body" = "内容";
+"Call with FaceTime" = "FaceTime 電話";
+"Call with Skype" = "Skype 電話";
+"Chatter Groups" = "Chatter グループ";
+"EULA" = "EULA";
+"FAQ" = "よくある質問";
+"Help" = "ヘルプ";
+"Link" = "リンク";
+"New in v1.1: Related Lists! View full record detail for any standard or custom related object." = "v1.1 新機能: 関連リスト!標準またはカスタムオブジェクトのレコードの詳細をすべて表示します。";
+"New in v1.1: Share any article or link to Chatter!" = "v1.1 新機能: 記事または Chatter へのリンクを共有!";
+"No Results" = "検索結果はありません";
+"Post" = "投稿";
+"Post to" = "投稿先";
+"Posting..." = "投稿...";
+"Related Lists" = "関連リスト";
+"Share on Chatter" = "Chatter で共有";
+"shared a link." = "さんがリンクを共有しました。";
+"Title" = "タイトル";
+
 /* Account
  Account object name
  Account singular */
@@ -195,7 +220,7 @@
 "No Local Accounts" = "ローカル取引先はありません";
 
 /* No news label */
-"No news — Tap to refresh" = "ニュースはありません - 更新するにはタップしてください";
+"No News — Tap to Refresh" = "ニュースはありません\n更新するにはタップしてください";
 
 /* OK */
 "OK" = "OK";

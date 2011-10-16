@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -38,13 +38,16 @@
 #import <QuartzCore/QuartzCore.h>
 #import "WebViewController.h"
 #import "PRPAlertView.h"
+#import "ListOfRelatedListsViewController.h"
+#import "RelatedListGridView.h"
+#import "RelatedRecordViewController.h"
 
 @implementation DetailViewController
 
-@synthesize subNavViewController, rootViewController, flyingWindows, browseButton, recordOverviewController;
+@synthesize subNavViewController, rootViewController, flyingWindows, browseButton, recordOverviewController, visibleAccount;
 
 static int maxAccountNames = 10;
-static float windowOverlap = 30.0f;
+static float windowOverlap = 60.0f;
 
 // allow multiple flying windows of the same type?
 BOOL allowMultipleWindows = NO;
@@ -70,11 +73,14 @@ BOOL allowMultipleWindows = NO;
 - (void)dealloc {
     [browseButton release];
     [flyingWindows release];
-    [account release];
+    [visibleAccount release];
     [super dealloc];
 }
 
-- (void) handleInterfaceRotation:(BOOL)isPortrait {    
+- (void) handleInterfaceRotation:(BOOL)isPortrait {   
+    if( isPortrait == [RootViewController isPortrait] )
+        return;
+    
     if( self.subNavViewController )
         [self.subNavViewController handleInterfaceRotation:isPortrait];
     
@@ -84,14 +90,14 @@ BOOL allowMultipleWindows = NO;
         framewidth = 1024 - masterWidth - 1;
     else
         framewidth = 768;
-    
+            
     CGRect r;
     
     if( self.recordOverviewController ) {
         r = self.recordOverviewController.view.frame;
         
         r.size.width = lroundf( framewidth / 2.0f );
-        r.origin.x = 0;
+        r.origin = CGPointZero;
         
         [self.recordOverviewController.view setFrame:r];
     }
@@ -100,26 +106,21 @@ BOOL allowMultipleWindows = NO;
         for( FlyingWindowController *fwc in self.flyingWindows ) {
             r = fwc.view.frame;
                         
-            if( fwc.flyingWindowType == FlyingWindowWebView ) {
-                r.size.width = framewidth - windowOverlap + ( isPortrait ? 1 : -60 );
-                
-                CGRect webViewFrame = ((WebViewController *)fwc).webView.frame;
-                webViewFrame.size.width = r.size.width;
-                
-                [((WebViewController *)fwc).webView setFrame:webViewFrame];
-            } else
+            if( [fwc isLargeWindow] )
+                r.size.width = lroundf( framewidth - windowOverlap );
+            else
                 r.size.width = lroundf( framewidth / 2.0f );
-            
+                        
             if( ![fwc isEqual:[self.flyingWindows lastObject]] )
                 r.origin.x = 0;
             else if( [fwc isEqual:[self.flyingWindows objectAtIndex:0]] && [self.flyingWindows count] == 1 && !self.recordOverviewController )
                 r.origin.x = lroundf( ( framewidth - r.size.width ) / 2.0f );
-            else if( fwc.flyingWindowType == FlyingWindowWebView )
-                r.origin.x = lroundf( framewidth - r.size.width + ( isPortrait ? 30 : -30 ) ); //windowOverlap + 20;
+            else if( [fwc isLargeWindow] )
+                r.origin.x = lroundf( framewidth - r.size.width + ( isPortrait ? 30 : -30 ) );
             else
                 r.origin.x = lroundf( framewidth / 2.0f ) + ( isPortrait ? 30 : -30 );
                                  
-            [fwc.view setFrame:r];
+            [fwc setFrame:r];
         }
 }
 
@@ -139,15 +140,17 @@ BOOL allowMultipleWindows = NO;
     NSArray *accounts = [self.subNavViewController.myRecords allValues];
 
     if( accounts && [accounts count] > 0 ) {
-        accounts = [AccountUtil randomSubsetFromArray:accounts ofSize:maxAccountNames];
-        NSArray *names = [NSArray array];
+        NSMutableSet *names = [NSMutableSet set];
         
         for( id acc in accounts ) {
-            if( [acc isKindOfClass:[NSArray class]] )
-                names = [names arrayByAddingObject:[[acc objectAtIndex:0] objectForKey:@"Name"]];
-            else
-                names = [names arrayByAddingObject:[acc objectForKey:@"Name"]];
+            if( [acc isKindOfClass:[NSArray class]] ) {
+                for( NSDictionary *a in acc )
+                    [names addObject:[a objectForKey:@"Name"]];
+            } else
+                [names addObject:[acc objectForKey:@"Name"]];
         }
+        
+        names = [NSSet setWithArray:[AccountUtil randomSubsetFromArray:[names allObjects] ofSize:maxAccountNames]];
             
         for( NSString *name in names ) {
             name = [NSString stringWithFormat:@"\"%@\"", name];
@@ -183,7 +186,7 @@ BOOL allowMultipleWindows = NO;
     if( !acc )
         return;
     
-    account = [acc retain];
+    self.visibleAccount = acc;
     
     [self clearFlyingWindows];
     
@@ -212,17 +215,22 @@ BOOL allowMultipleWindows = NO;
         [self.recordOverviewController slideFlyingWindowToPoint:center];
     }
     
-    [self.recordOverviewController selectAccount:account];
+    [self.recordOverviewController selectAccount:self.visibleAccount];
     
     if( [RootViewController isPortrait] )
         [self.recordOverviewController.navBar.topItem setLeftBarButtonItem:self.browseButton animated:YES];
     
-    [self addFlyingWindow:FlyingWindowNews withArg:nil];
+    NSString *defaultWindow = [[NSUserDefaults standardUserDefaults] stringForKey:@"accounts_open_with"];
+    
+    if( !defaultWindow || [defaultWindow isEqualToString:@"News"] || self.subNavViewController.subNavTableType == SubNavLocalAccounts )
+        [self addFlyingWindow:FlyingWindowNews withArg:nil];
+    else
+        [self addFlyingWindow:FlyingWindowListofRelatedLists withArg:nil];
 }
 
 - (NSString *) visibleAccountId {
-    if( account )
-        return [account objectForKey:@"Id"];
+    if( self.visibleAccount )
+        return [self.visibleAccount objectForKey:@"Id"];
     
     return nil;
 }
@@ -230,7 +238,7 @@ BOOL allowMultipleWindows = NO;
 #pragma mark - Flying Window delegate/management
 
 - (BOOL) flyingWindowShouldDrag:(FlyingWindowController *)flyingWindowController {
-    if( [flyingWindowController isKindOfClass:[WebViewController class]] )
+    if( flyingWindowController.flyingWindowType == FlyingWindowWebView )
         return ![(WebViewController *)flyingWindowController isFullScreen];
     
     return YES;
@@ -239,9 +247,11 @@ BOOL allowMultipleWindows = NO;
 - (CGPoint) translateFlyingWindowCenterPoint:(FlyingWindowController *)flyingWindowController originalPoint:(CGPoint)originalPoint isDragging:(BOOL)isDragging {
     float framewidth = ( [RootViewController isPortrait] ? 768 : 1024 - masterWidth - 1 ), 
         windowwidth = flyingWindowController.view.frame.size.width,
-        leftCenter = ( framewidth / 2.0f ) - ( windowwidth / 2.0f ),
-        rightCenter = ( framewidth / 2.0f ) + ( windowwidth / 2.0f ),
-        centerCenter = ( framewidth / 2.0f ), leftbound, rightbound, target;
+        leftCenter = ( windowwidth / 2.0f ),
+        centerCenter = ( framewidth / 2.0f ), 
+        rightCenter = centerCenter + ( windowwidth / 2.0f ),
+        largeWindowLeft = centerCenter + ( windowOverlap / 2.0f ),
+            leftbound, rightbound, target;
     CGPoint newPoint;
     int flyingWindowCount = ( self.flyingWindows ? [self.flyingWindows count] : 0 ), 
         totalWindowCount = flyingWindowCount + ( self.recordOverviewController ? 1 : 0 );
@@ -256,23 +266,8 @@ BOOL allowMultipleWindows = NO;
     leftbound = rightbound = target = leftCenter;
     
     // define a left/right bound for dragging, and a target when released, for each type of window
-    // given its position in the window stack
-    if( flyingWindowController.flyingWindowType == FlyingWindowWebView ) {
-        leftbound = centerCenter;
-        rightbound = rightCenter;
-        
-        if( isRightmost && totalWindowCount >= 3 ) {
-            rightbound = 2000;
-            
-            if( originalPoint.x > rightCenter + 75 )
-                target = framewidth + ( windowwidth / 2.0f );
-            else
-                target = centerCenter + windowOverlap;
-        } else if( ( originalPoint.x - centerCenter ) < ( rightCenter - originalPoint.x ) )
-            target = centerCenter + windowOverlap;
-        else
-            target = rightCenter;
-    } else if( isAlone ) {
+    // given its position in the window stack        
+    if( isAlone ) {
         leftbound = rightbound = target = centerCenter;
     } else if( isLeftmost ) {
         rightbound = target = leftCenter;
@@ -290,27 +285,34 @@ BOOL allowMultipleWindows = NO;
             target = leftCenter;
         else
             target = rightCenter;        
-    } else if( isRightmost && !isLeftmost ) {
-        leftbound = target = rightCenter;
+    } else if( isRightmost && !isLeftmost ) {        
+        if( [flyingWindowController isLargeWindow] )
+            leftbound = target = largeWindowLeft;
+        else
+            leftbound = target = rightCenter;
         
-        if( totalWindowCount <= 2 )
-            rightbound = rightCenter;
-        else {
+        if( totalWindowCount <= 2 ) {
+            rightbound = target = rightCenter;
+            
+            if( [flyingWindowController isLargeWindow] && originalPoint.x < centerCenter )
+                target = largeWindowLeft;
+        } else {
             rightbound = 2000;
             
-            if( originalPoint.x < rightCenter + 75 )
-                target = rightCenter;
-            else
+            if( originalPoint.x > rightCenter + 100 )
                 target = framewidth + ( windowwidth / 2.0f );
+            else if( originalPoint.x > centerCenter )
+                target = rightCenter;
         }
     }
     
-    // if we are dragging beyond a bound, we apply some resistance 
-    if( isDragging ) {        
+    // the window is being dragged. move it and its immediate neighbors to match the drag
+    if( isDragging ) {    
+        // if we are dragging beyond a bound, we apply some resistance 
         if( originalPoint.x < leftbound )
-            newPoint.x = leftbound + ( ( originalPoint.x - leftbound ) / 5 );
+            newPoint.x = leftbound + ( ( originalPoint.x - leftbound ) / 7.0f );
         else if( originalPoint.x > rightbound )
-            newPoint.x = rightbound + ( ( originalPoint.x - rightbound ) / 5 );
+            newPoint.x = rightbound + ( ( originalPoint.x - rightbound ) / 7.0f );
         else
             newPoint.x = originalPoint.x;
         
@@ -323,8 +325,8 @@ BOOL allowMultipleWindows = NO;
             
             otherCenter.x = newPoint.x - ( ourWidth / 2.0f ) - ( otherWidth / 2.0f );
             
-            if( otherCenter.x < ( framewidth / 4.0f ) )
-                otherCenter.x = framewidth / 4.0f;
+            if( otherCenter.x < otherWidth / 2.0f )
+                otherCenter.x = otherWidth / 2.0f;
             
             otherCenter.x = lroundf( otherCenter.x );
             
@@ -361,7 +363,7 @@ BOOL allowMultipleWindows = NO;
         }            
         
         // dimming
-        if( flyingWindowController.leftFWC ) {
+        /*if( flyingWindowController.leftFWC ) {
             CGRect overlap = CGRectIntersection( flyingWindowController.view.frame, flyingWindowController.leftFWC.view.frame );
             float perc = overlap.size.width / flyingWindowController.leftFWC.view.frame.size.width;
 
@@ -375,35 +377,36 @@ BOOL allowMultipleWindows = NO;
             float perc = overlap.size.width / flyingWindowController.rightFWC.view.frame.size.width;
             
             [flyingWindowController.rightFWC setDimmerAlpha:perc];
-        }
+        }*/
     } else { /* released touch. snap to target */
-        newPoint.x = lroundf( target );
+        newPoint.x = target;
         
-        // Ensure the window to our left slides back to its position too
+        // Ensure the window to our left slides back to its position
         if( flyingWindowController.leftFWC ) {
             CGPoint p = flyingWindowController.leftFWC.view.center;
-            int leftTarget = target - ( flyingWindowController.view.frame.size.width / 2.0f ) - ( flyingWindowController.leftFWC.view.frame.size.width / 2.0f );
+            CGRect r = flyingWindowController.leftFWC.view.frame;
+                
+            if( target >= framewidth )
+                p.x = [flyingWindowController.leftFWC isLargeWindow] ? largeWindowLeft : centerCenter + ( r.size.width / 2.0f );
+            else
+                p.x = r.size.width / 2.0f;
             
-            if( leftTarget < centerCenter )
-                leftTarget = framewidth / 4.0f;
-            else if( target > framewidth * 0.75f )
-                leftTarget = framewidth * 0.75f;
-            
-            p.x = lroundf( leftTarget ) + ( [RootViewController isPortrait] ? 0 : 1 );
+            p.x = lroundf( p.x );
             
             [flyingWindowController.leftFWC slideFlyingWindowToPoint:p];
         }
             
+        // And the window to our right
         if( flyingWindowController.rightFWC ) {
+            CGRect r = flyingWindowController.rightFWC.view.frame;
             CGPoint p = flyingWindowController.rightFWC.view.center;
-            int rightTarget;
             
-            if( target < centerCenter )
-                rightTarget = centerCenter + ( flyingWindowController.rightFWC.view.frame.size.width / 2.0f );
+            if( target <= leftCenter )
+                p.x = [flyingWindowController.rightFWC isLargeWindow] ? largeWindowLeft : centerCenter + ( r.size.width / 2.0f );
             else
-                rightTarget = framewidth + ( flyingWindowController.rightFWC.view.frame.size.width / 2.0f );
+                p.x = framewidth + ( r.size.width / 2.0f );
 
-            p.x = lroundf( rightTarget );
+            p.x = lroundf( p.x );
                 
             [flyingWindowController.rightFWC slideFlyingWindowToPoint:p];
             
@@ -415,13 +418,16 @@ BOOL allowMultipleWindows = NO;
             }
         }    
     }
+    
+    if( !newPoint.x )
+        newPoint.x = 0;
 
     newPoint.y = lroundf( self.view.bounds.size.height / 2.0f );
         
     return newPoint;
 }
 
-- (void) tearOffFlyingWindowsStartingWith:(FlyingWindowController *)flyingWindowController {
+- (void) tearOffFlyingWindowsStartingWith:(FlyingWindowController *)flyingWindowController inclusive:(BOOL)inclusive {
     if( !self.flyingWindows || [self.flyingWindows count] == 0 )
         return;
     
@@ -430,66 +436,79 @@ BOOL allowMultipleWindows = NO;
     for( int x = 0; x < [self.flyingWindows count]; x++ ) {
         FlyingWindowController *fwc = [self.flyingWindows objectAtIndex:x];
         
-        if( [fwc isEqual:flyingWindowController] )
+        if( [fwc isEqual:flyingWindowController] ) {
             tearPoint = x;
+            break;
+        }
     }
     
     if( tearPoint != -1 )
         for( int x = [self.flyingWindows count] - 1; x >= tearPoint; x-- ) {
             FlyingWindowController *fwc = [self.flyingWindows objectAtIndex:x];
-            fwc.leftFWC.rightFWC = nil;
             
-            [fwc.view removeFromSuperview];
-            fwc = nil;
-            [self.flyingWindows removeObjectAtIndex:x];
+            if( !inclusive && [fwc isEqual:flyingWindowController] )
+                continue;
+            
+            [self removeFlyingWindow:fwc];
         }
     
-    if( tearPoint > 0 )
-        [[self.flyingWindows objectAtIndex:tearPoint-1] slideFlyingWindowToPoint:CGPointMake( lroundf( self.view.frame.size.width * 0.75f ), lroundf( self.view.frame.size.height / 2.0f ))];
+    if( tearPoint > 0 ) {
+        CGPoint p = CGPointMake( lroundf( self.view.frame.size.width * 0.75f ), lroundf( self.view.frame.size.height / 2.0f ) );
+        
+        if( [[self.flyingWindows objectAtIndex:tearPoint-1] isLargeWindow] )
+            p.x = lroundf( ( self.view.frame.size.width / 2.0f ) + ( windowOverlap / 2.0f ) );
+        
+        [[self.flyingWindows objectAtIndex:tearPoint-1] slideFlyingWindowToPoint:p];
+    }
 }
 
-- (void) addFlyingWindow:(enum FlyingWindowTypes)windowType withArg:(NSString *)arg {
+- (void) removeFlyingWindow:(FlyingWindowController *)fwc {
+    if( [fwc isEqual:[self.flyingWindows lastObject]] && [self.flyingWindows count] > 1 )
+        fwc.leftFWC.rightFWC = nil;
+    else if( [fwc isEqual:[self.flyingWindows objectAtIndex:0]] && [self.flyingWindows count] > 1 )
+        fwc.rightFWC.leftFWC = nil;
+    else {
+        fwc.leftFWC.rightFWC = fwc.rightFWC;
+        fwc.rightFWC.leftFWC = fwc.leftFWC;
+    }
+    
+    [fwc.view removeFromSuperview];
+    [self.flyingWindows removeObject:fwc];
+    fwc = nil;
+}
+
+- (void) addFlyingWindow:(enum FlyingWindowTypes)windowType withArg:(id)arg {
     FlyingWindowController *fwc = nil;
     float framewidth = self.view.bounds.size.width;
     
     if( !self.flyingWindows )
         self.flyingWindows = [NSMutableArray array];
     
+    // Always zap webviews every time we add a new window
+    [self removeFirstFlyingWindowOfType:FlyingWindowWebView];
+    
+    // Max of 3 related record views
+    if( windowType == FlyingWindowRelatedRecordView && 
+        [self numberOfFlyingWindowsOfType:FlyingWindowRelatedRecordView] > 2 )
+        [self removeFirstFlyingWindowOfType:FlyingWindowRelatedRecordView];
+    
     for( int x = 0; x < [self.flyingWindows count]; x++ ) {
-        FlyingWindowController *fwc = [self.flyingWindows objectAtIndex:x];
-        
-        CGRect fr = fwc.view.frame;
-        
+        FlyingWindowController *fwc = [self.flyingWindows objectAtIndex:x];        
         [self.view bringSubviewToFront:fwc.view];  
         
-        // always zap webviews
-        if( fwc.flyingWindowType == FlyingWindowWebView ) {
-            [fwc.view removeFromSuperview];
-            [self.flyingWindows removeObject:fwc];
-            fwc = nil;
-            continue;
-        }
+        CGRect fr = fwc.view.frame;
+        CGPoint leftEdge = CGPointMake( lroundf( fr.size.width / 2.0f ), lroundf( fr.size.height / 2.0f ) );
         
-        CGPoint center = CGPointMake( lroundf( framewidth / 4.0f ), lroundf( fr.size.height / 2.0f ) );
-        
-        // move windows over
-        if( !allowMultipleWindows && fwc.flyingWindowType == windowType ) {
-            if( x > 0 )
-                [(FlyingWindowController *)[self.flyingWindows objectAtIndex:(x-1)] slideFlyingWindowToPoint:center];
-            
-            center.x = lroundf( framewidth * 0.75 );
-            [fwc slideFlyingWindowToPoint:center];
-            
-            return;
-        }
-        
-        [fwc slideFlyingWindowToPoint:center];
+        [fwc slideFlyingWindowToPoint:leftEdge];
     }
     
     CGRect r = CGRectMake( 1100, 0, lroundf( framewidth / 2.0f ), self.view.bounds.size.height );
     
     float centerCenter = framewidth / 2.0f,
         rightCenter = 1.5f * centerCenter;
+    
+    ZKDescribeLayout *layout = [[AccountUtil sharedAccountUtil] layoutForRecord:self.visibleAccount];
+    ZKRelatedList *relatedList = nil;
         
     switch( windowType ) {
         case FlyingWindowRecordOverview:
@@ -500,18 +519,39 @@ BOOL allowMultipleWindows = NO;
             
             if( arg ) {
                 [(RecordNewsViewController *)fwc setCompoundNewsView:YES];
-                [(RecordNewsViewController *)fwc setNewsSearchTerm:arg];
+                [(RecordNewsViewController *)fwc setSearchTerm:arg];
             } else {
                 [(RecordNewsViewController *)fwc setCompoundNewsView:NO];
-                [(RecordNewsViewController *)fwc setNewsSearchTerm:( account ? [account objectForKey:@"Name"] : @"Salesforce.com" )];
+                [(RecordNewsViewController *)fwc setSearchTerm:( self.visibleAccount ? [self.visibleAccount objectForKey:@"Name"] : @"Salesforce.com" )];
             }
             break;
         case FlyingWindowWebView:
-            r.size.width = framewidth - windowOverlap - 30;
+            r.size.width = lroundf( framewidth - windowOverlap );
             fwc = [[WebViewController alloc] initWithFrame:r];
             [(WebViewController *)fwc loadURL:arg];
             
             rightCenter = framewidth;
+            break;
+        case FlyingWindowRelatedListGrid:
+            r.size.width = lroundf( framewidth - windowOverlap );
+            
+            for( ZKRelatedList *list in [layout relatedLists] )
+                if( [[list sobject] isEqualToString:arg] ) {
+                    relatedList = list;
+                    break;
+                }
+            
+            fwc = [[RelatedListGridView alloc] initWithRelatedList:relatedList inFrame:r];
+            
+            rightCenter = framewidth;
+            break;
+        case FlyingWindowRelatedRecordView:
+            r.size.width = lroundf( framewidth - windowOverlap );
+            fwc = [[RelatedRecordViewController alloc] initWithFrame:r];
+            [(RelatedRecordViewController *)fwc setRelatedRecord:arg];
+            break;
+        case FlyingWindowListofRelatedLists:            
+            fwc = [[ListOfRelatedListsViewController alloc] initWithFrame:r];
             break;
         default:
             break;
@@ -522,7 +562,7 @@ BOOL allowMultipleWindows = NO;
     fwc.subNavViewController = self.subNavViewController;
     fwc.delegate = self;
     fwc.flyingWindowType = windowType;
-    [fwc selectAccount:account];
+    [fwc selectAccount:self.visibleAccount];
     
     if( self.recordOverviewController && [self.flyingWindows count] == 0 ) {
         fwc.leftFWC = self.recordOverviewController;
@@ -532,12 +572,12 @@ BOOL allowMultipleWindows = NO;
         ((FlyingWindowController *)[self.flyingWindows lastObject]).rightFWC = fwc;
     }
     
-    CGPoint center = CGPointMake( lroundf( rightCenter ), lroundf( r.size.height / 2.0f ) );
+    CGPoint center = CGPointMake( rightCenter, lroundf( r.size.height / 2.0f ) );
     
-    if( windowType == FlyingWindowWebView )
-        center.x = centerCenter + windowOverlap;
+    if( [fwc isLargeWindow] )
+        center.x = centerCenter + ( windowOverlap / 2.0f );
     else if( !self.recordOverviewController && [self.flyingWindows count] == 0 )
-        center.x = lroundf( centerCenter );
+        center.x = centerCenter;
     
     [self.flyingWindows addObject:fwc];
     [self.view addSubview:fwc.view];
@@ -549,12 +589,34 @@ BOOL allowMultipleWindows = NO;
     if( !self.flyingWindows || [self.flyingWindows count] == 0 )
         return;
     
-    for( FlyingWindowController *fwc in self.flyingWindows ) {
+    for( FlyingWindowController *fwc in self.flyingWindows )
         [fwc.view removeFromSuperview];
-        fwc = nil;
-    }
     
     [self.flyingWindows removeAllObjects];
+}
+
+- (NSUInteger) numberOfFlyingWindowsOfType:(enum FlyingWindowTypes)windowType {
+    if( !self.flyingWindows )
+        return 0;
+    
+    int count = 0;
+    
+    for( FlyingWindowController *fwc in self.flyingWindows )
+        if( fwc.flyingWindowType == windowType )
+            count++;
+    
+    return count;
+}
+
+- (void) removeFirstFlyingWindowOfType:(enum FlyingWindowTypes)windowType {
+    if( !self.flyingWindows )
+        return;
+    
+    for( FlyingWindowController *fwc in self.flyingWindows )
+        if( fwc.flyingWindowType == windowType ) {
+            [self removeFlyingWindow:fwc];
+            break;
+        }
 }
 
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation {
@@ -563,6 +625,24 @@ BOOL allowMultipleWindows = NO;
 
 - (void) willRotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation duration:(NSTimeInterval)duration {    
     [self handleInterfaceRotation:UIInterfaceOrientationIsPortrait(toInterfaceOrientation)];
+}
+
+- (void) eventLogInOrOut {                
+    if( self.recordOverviewController ) {
+        [self.recordOverviewController.view removeFromSuperview];
+        self.recordOverviewController = nil;
+    }
+    
+    [self clearFlyingWindows];
+    
+    [self.rootViewController allSubNavSelectAccountWithId:nil];
+    
+    if( ![self.rootViewController isLoggedIn] ) {                
+        // we've just logged out
+        [self addAccountNewsTable];
+    } else {
+        // we've just logged in
+    }
 }
 
 #pragma mark - email and webview
@@ -591,24 +671,6 @@ BOOL allowMultipleWindows = NO;
         [PRPAlertView showWithTitle:NSLocalizedString(@"Alert", @"Alert") 
                             message:[error localizedDescription] 
                         buttonTitle:NSLocalizedString(@"OK",@"OK")];
-}
-
-- (void) eventLogInOrOut {                
-    if( self.recordOverviewController ) {
-        [self.recordOverviewController.view removeFromSuperview];
-        self.recordOverviewController = nil;
-    }
-    
-    [self clearFlyingWindows];
-    
-    [self.rootViewController allSubNavSelectAccountWithId:nil];
-    
-    if( ![self.rootViewController isLoggedIn] ) {                
-        // we've just logged out
-        [self addAccountNewsTable];
-    } else {
-        // we've just logged in
-    }
 }
 
 @end

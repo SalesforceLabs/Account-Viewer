@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -28,9 +28,11 @@
 #import <UIKit/UIKit.h>
 #import "PRPSmartTableViewCell.h"
 
-@class AccountAddEditController;
+@protocol TextCellDelegate;
 
-@interface TextCell : PRPSmartTableViewCell <UITextFieldDelegate> {
+@interface TextCell : PRPSmartTableViewCell <UITextFieldDelegate, UITextViewDelegate> {
+    int maxLength;
+    float maxLabelWidth;
 }
 
 // Validation Field types
@@ -45,23 +47,55 @@ enum ValidationTypes {
     ValidateNumTypes,
 };
 
+// Text cell types
+enum TextCellTypes {
+    TextFieldCell = 0,
+    TextViewCell,
+    TextCellNumTypes,
+};
+
 @property (nonatomic, retain) NSString *fieldLabel;
 @property (nonatomic, retain) UITextField *textField;
+@property (nonatomic, retain) UITextView *textView;
 @property (nonatomic, retain) NSString *fieldName;
 
-@property (nonatomic, assign) AccountAddEditController *accountAddEditController;
+@property (nonatomic, assign) id <TextCellDelegate> delegate;
 
 @property enum ValidationTypes validationType;
+@property enum TextCellTypes cellType;
 
+// Setup
 - (void) dealloc;
 - (id) initWithCellIdentifier:(NSString *)cellID;
+- (void) setMaxLabelWidth:(float)width;
+- (void) setMaxLength:(int)length;
+- (int) getMaxLength;
+- (void) setTextCellType:(enum TextCellTypes)textCellType;
+- (void) setCellText:(NSString *)text;
+- (NSString *) getCellText;
+
+// Text Field delegate
 - (void) textFieldFinished:(id)sender;
 - (BOOL) textFieldShouldReturn:(UITextField *)tf;
 - (void) textFieldDidChange:(id)sender;
 - (BOOL) textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string;
 
+// Misc
+- (BOOL) shouldChangeCharacters:(NSString *)characters range:(NSRange)range replacementString:(NSString *)string;
 - (void) setKeyboardType:(UIKeyboardType) type;
 - (NSString*) formatNumber:(NSString*)mobileNumber;
 - (int) getLength:(NSString*)mobileNumber;
+- (BOOL) becomeFirstResponder;
 
 @end
+
+// START:Delegate
+@protocol TextCellDelegate <NSObject>
+
+@optional
+
+// called if there's any error when creating a chatter post
+- (void) textCellValueChanged:(TextCell *)cell;
+
+@end
+// END:Delegate

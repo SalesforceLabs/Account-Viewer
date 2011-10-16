@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -24,22 +24,24 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
  * POSSIBILITY OF SUCH DAMAGE.
  */
-
 #import <UIKit/UIKit.h>
 #import "zkSforce.h"
 #import "FlyingWindowController.h"
 #import <MessageUI/MessageUI.h>
 #import <MessageUI/MFMailComposeViewController.h>
+#import "ChatterPostController.h"
 
-@interface WebViewController : FlyingWindowController <UIActionSheetDelegate, MFMailComposeViewControllerDelegate, UIWebViewDelegate> {
+@interface WebViewController : FlyingWindowController <UIActionSheetDelegate, MFMailComposeViewControllerDelegate, UIWebViewDelegate, UIPopoverControllerDelegate, ChatterPostDelegate> {
 	UIWebView *webView;
-    NSString *destURL;
     UIActionSheet *myActionSheet;
     BOOL isFullScreen;
 }
 
+@property (nonatomic, retain) UIBarButtonItem *actionButton;
 @property (nonatomic, retain) UIWebView *webView;
 @property (nonatomic, retain) UIActionSheet *myActionSheet;
+@property (nonatomic, retain) UIPopoverController *chatterPop;
+@property (nonatomic, retain) NSString *destURL;
 
 - (id) initWithFrame:(CGRect)frame;
 - (void) loadURL:(NSString *)url;
@@ -48,5 +50,7 @@
 - (void) resetNavToolbar;
 
 - (BOOL) isFullScreen;
+
+- (void) dismissPopover;
 
 @end

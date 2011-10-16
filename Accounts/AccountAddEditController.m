@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -100,8 +100,7 @@ enum AccountTableDetailRows {
         self.navigationItem.leftBarButtonItem = cancelButton;
         [cancelButton release];
         
-        fields = [[NSMutableDictionary alloc] init];
-        textFields = [[NSMutableDictionary alloc] init];
+        self.fields = [NSMutableDictionary dictionary];
         
         self.tableView.canCancelContentTouches = YES;
     }
@@ -111,7 +110,7 @@ enum AccountTableDetailRows {
 
 - (id) initWithAccount:(NSDictionary *)account {
     if(( self = [self init] )) {
-        fields = [[NSMutableDictionary alloc] initWithDictionary:account];
+        self.fields = [NSMutableDictionary dictionaryWithDictionary:account];
         isNewAccount = NO;
         saveButton.enabled = YES;
         self.title = [NSString stringWithFormat:@"%@: %@", 
@@ -188,6 +187,8 @@ enum AccountTableDetailRows {
 
 - (UITableViewCell *) tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     TextCell *cell = [TextCell cellForTableView:tableView];
+    [cell setTextCellType:TextFieldCell];
+    [cell setMaxLabelWidth:130.0f];
     cell.textField.text = @"";
     cell.textField.placeholder = @"";
     
@@ -279,7 +280,8 @@ enum AccountTableDetailRows {
     
     cell.textLabel.text = NSLocalizedString( cell.fieldName, @"account fields" );
     cell.fieldLabel = cell.textLabel.text;
-    cell.accountAddEditController = self;
+    cell.delegate = self;
+    [cell setMaxLength:255];
     
     // Add a blank entry for this field if it's not empty
     NSString *field = [cell.fieldName stringByReplacingOccurrencesOfString:@" " withString:@""];
@@ -289,23 +291,29 @@ enum AccountTableDetailRows {
     else
         cell.textField.text = [fields objectForKey:field];
     
-    // save this textfield into our dictionary
-    [textFields setValue:cell.textField forKey:[NSString stringWithFormat:@"%i%i", indexPath.section, indexPath.row]];
-    
     return cell;
 }
 
 - (void) tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {    
-    NSString *key = [NSString stringWithFormat:@"%i%i", indexPath.section, indexPath.row];
-    
-    if( [textFields objectForKey:key] )
-        [(UITextField *)[textFields objectForKey:key] becomeFirstResponder];
+    [((TextCell *)[tableView cellForRowAtIndexPath:indexPath]) becomeFirstResponder];
 }
 
-- (void) textFieldValueChanged:(UITableViewCell *)cell field:(UITextField *)textField {    
+- (BOOL) shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation {
+    return YES;
+}
+
+- (void) dealloc {
+    [fields release];
+    [saveButton release];
+    [super dealloc];
+}
+
+#pragma mark - text cell delegate
+
+- (void) textCellValueChanged:(TextCell *)cell {    
     // Save the value in this field
-    NSString *value = [AccountUtil trimWhiteSpaceFromString:textField.text];
-            
+    NSString *value = [AccountUtil trimWhiteSpaceFromString:cell.textField.text];
+    
     [fields setObject:value forKey:[((TextCell *)cell).fieldName stringByReplacingOccurrencesOfString:@" " withString:@""]];
     
     // Is there a value for our name field?    
@@ -322,19 +330,8 @@ enum AccountTableDetailRows {
     
     // Notify our delegate
     if ([self.delegate respondsToSelector:@selector(accountFieldDidChange:textField:)]) {
-        [self.delegate accountFieldDidChange:self textField:textField];
+        [self.delegate accountFieldDidChange:self textField:cell.textField];
     }
-}
-
-- (BOOL) shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation {
-    return YES;
-}
-
-- (void) dealloc {
-    [fields release];
-    [textFields release];
-    [saveButton release];
-    [super dealloc];
 }
 
 @end

@@ -134,6 +134,10 @@ static DSActivityView *dsActivityView = nil;
 	return self;
 }
 
+- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
+    return self;
+}
+
 - (void)dealloc;
 {
     [_activityLabel release];

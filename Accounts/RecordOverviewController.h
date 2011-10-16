@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -34,12 +34,14 @@
 #import "AccountAddEditController.h"
 #import "AQGridView.h"
 #import <MapKit/MapKit.h>
+#import "FollowButton.h"
 
 @class FieldPopoverButton;
 
 #define GEOCODE_ENDPOINT @"https://maps.googleapis.com/maps/api/geocode/json?address="
 
-@interface RecordOverviewController : FlyingWindowController <MKMapViewDelegate, AccountAddEditControllerDelegate, AQGridViewDelegate, AQGridViewDataSource> {
+@interface RecordOverviewController : FlyingWindowController <MKMapViewDelegate, AccountAddEditControllerDelegate, AQGridViewDelegate, AQGridViewDataSource, FollowButtonDelegate> {
+    BOOL isLoading;
 }
 
 enum {
@@ -57,6 +59,7 @@ enum {
 @property (nonatomic, retain) UIScrollView *scrollView;
 @property (nonatomic, retain) NSMutableArray *commButtons;
 @property (nonatomic, retain) UIView *commButtonBackground;
+@property (nonatomic, retain) FollowButton *followButton;
 
 @property (nonatomic, assign) FieldPopoverButton *addressButton;
 @property (nonatomic, assign) UIButton *recenterButton;

@@ -225,8 +225,12 @@
     // This is just a demo. Override this method with your custom reload action.
     // Don't forget to call stopLoading at the end.
     //[self performSelector:@selector(stopLoading) withObject:nil afterDelay:2.0];
-    if( self.tableView.dataSource != self )
-        [self.tableView.dataSource performSelector:@selector(refresh:) withObject:[NSNumber numberWithBool:YES]];
+    if( self.tableView.dataSource != self ) {
+        if( [self.tableView.dataSource respondsToSelector:@selector(refresh:)] )
+            [self.tableView.dataSource performSelector:@selector(refresh:) withObject:[NSNumber numberWithBool:YES]];
+        else if( [self.tableView.dataSource respondsToSelector:@selector(refresh)] )
+            [self.tableView.dataSource performSelector:@selector(refresh)];
+    }
 }
 
 - (void)dealloc {

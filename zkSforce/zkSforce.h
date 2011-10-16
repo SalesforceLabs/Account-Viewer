@@ -41,3 +41,7 @@
 #import "ZKRecordTypeInfo.h"
 #import "ZKDescribeLayoutItem.h"
 #import "ZKDescribeLayoutComponent.h"
+#import "ZKRelatedList.h"
+#import "ZKRelatedListColumn.h"
+#import "ZKRelatedListSort.h"
+#import "zkChildRelationship.h"

@@ -38,6 +38,26 @@
 		</dict>
 		<dict>
 			<key>DefaultValue</key>
+			<string>News</string>
+			<key>Key</key>
+			<string>accounts_open_with</string>
+			<key>Title</key>
+			<string>Default Detail View</string>
+			<key>Titles</key>
+			<array>
+				<string>News</string>
+				<string>Related Lists</string>
+			</array>
+			<key>Type</key>
+			<string>PSMultiValueSpecifier</string>
+			<key>Values</key>
+			<array>
+				<string>News</string>
+				<string>Related Lists</string>
+			</array>
+		</dict>
+		<dict>
+			<key>DefaultValue</key>
 			<true/>
 			<key>Key</key>
 			<string>show_empty_fields</string>
@@ -115,14 +135,14 @@
 			<string>PSChildPaneSpecifier</string>
 		</dict>
 		<dict>
-			<key>Type</key>
-			<string>PSChildPaneSpecifier</string>
-			<key>Title</key>
-			<string>EULA</string>
 			<key>IASKViewControllerClass</key>
 			<string>AboutAppViewController</string>
 			<key>IASKViewControllerSelector</key>
 			<string>initWithEULA</string>
+			<key>Title</key>
+			<string>EULA</string>
+			<key>Type</key>
+			<string>PSChildPaneSpecifier</string>
 		</dict>
 		<dict>
 			<key>DefaultValue</key>

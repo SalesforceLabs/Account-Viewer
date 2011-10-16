@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -36,13 +36,12 @@
 @class SubNavViewController;
 @class RecordNewsViewController;
 
-@interface DetailViewController : UIViewController <UIActionSheetDelegate, UITextViewDelegate, MFMailComposeViewControllerDelegate, FlyingWindowDelegate> {
-    NSDictionary *account;
-}
+@interface DetailViewController : UIViewController <UIActionSheetDelegate, UITextViewDelegate, MFMailComposeViewControllerDelegate, FlyingWindowDelegate> {}
 
 @property (nonatomic, retain) RecordOverviewController *recordOverviewController;
 @property (nonatomic, retain) NSMutableArray *flyingWindows;
 @property (nonatomic, retain) UIBarButtonItem *browseButton;
+@property (nonatomic, retain) NSDictionary *visibleAccount;
 
 @property (nonatomic, assign) IBOutlet RootViewController *rootViewController;
 @property (nonatomic, assign) SubNavViewController *subNavViewController;
@@ -51,14 +50,20 @@
 
 - (void) handleInterfaceRotation:(BOOL) isPortrait;
 
-- (void) addFlyingWindow:(enum FlyingWindowTypes) windowType withArg:(NSString *)arg;
+// Flying Window Management
+- (void) addFlyingWindow:(enum FlyingWindowTypes) windowType withArg:(id)arg;
 - (void) clearFlyingWindows;
-- (void) tearOffFlyingWindowsStartingWith:(FlyingWindowController *)flyingWindowController;
+- (void) tearOffFlyingWindowsStartingWith:(FlyingWindowController *)flyingWindowController inclusive:(BOOL)inclusive;
 - (void) setPopoverButton:(UIBarButtonItem *)button;
+- (void) removeFlyingWindow:(FlyingWindowController *)fwc;
+- (NSUInteger) numberOfFlyingWindowsOfType:(enum FlyingWindowTypes)windowType;
+- (void) removeFirstFlyingWindowOfType:(enum FlyingWindowTypes)windowType;
 
+// Window actions
 - (void) openEmailComposer:(NSString *)toAddress;
 - (void) openWebView:(NSString *)url;
 
+// Setup, login
 - (void) didSelectAccount:(NSDictionary *)acc;
 - (void) eventLogInOrOut;
 - (void) addAccountNewsTable;

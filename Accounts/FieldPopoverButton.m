@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -35,41 +35,90 @@
 
 @implementation FieldPopoverButton
 
-@synthesize popoverController, fieldType, buttonDetailText, detailViewController;
+@synthesize popoverController, fieldType, buttonDetailText, detailViewController, myRecord, flyingWindowController, followButton;
 
 static NSString *facetimeFormat = @"facetime://%@";
-static NSString *skypeFormat = @"skype://%@?call";
-static NSString *openInMapsFormat = @"https://maps.google.com/maps?q=%@";
+static NSString *skypeFormat = @"skype:%@?call";
+static NSString *openInMapsFormat = @"http://maps.google.com/maps?q=%@";
 
 + (id) buttonWithText:(NSString *)text fieldType:(enum FieldType)fT detailText:(NSString *)detailText {
     FieldPopoverButton *button = [self buttonWithType:UIButtonTypeCustom];
     
     button.buttonDetailText = detailText;
     button.fieldType = fT;
+    button.titleLabel.font = [UIFont fontWithName:@"HelveticaNeue" size:16];
     
-    button.titleLabel.font = [UIFont fontWithName:@"HelveticaNeue" size:14];
-    
-    if( fT != TextField )
-        [button setTitleColor:UIColorFromRGB(0x1679c9) forState:UIControlStateNormal];
-    else
-        [button setTitleColor:[UIColor darkGrayColor] forState:UIControlStateNormal];
-        
+    switch( button.fieldType ) {
+        case TextField:
+            [button setTitleColor:[UIColor darkGrayColor] forState:UIControlStateNormal];
+            [button setTitle:text forState:UIControlStateNormal];
+            break;
+        case UserPhotoField:
+            break;
+        case WebviewField:
+            if( detailText && [detailText length] > 0 )
+                [button setImage:[UIImage imageNamed:@"openPopover.png"] forState:UIControlStateNormal];
+            
+            break;
+        default:
+            [button setTitleColor:AppLinkColor forState:UIControlStateNormal];
+            [button setTitle:text forState:UIControlStateNormal];
+            button.titleLabel.font = [UIFont fontWithName:@"HelveticaNeue-Bold" size:16];
+            break;
+    }
+              
     [button setTitleColor:[UIColor darkTextColor] forState:UIControlStateHighlighted];
     button.titleLabel.lineBreakMode = UILineBreakModeWordWrap;
     button.titleLabel.numberOfLines = 0;
     button.titleLabel.textAlignment = UITextAlignmentLeft;
     button.titleLabel.adjustsFontSizeToFitWidth = NO;
     
-    if( fT != UserPhotoField )
-        [button setTitle:text forState:UIControlStateNormal];
-    
     [button addTarget:button action:@selector(fieldTapped:) forControlEvents:UIControlEventTouchUpInside];
     
     return button;
 }
 
-- (void) setFieldUser:(ZKSObject *)user {    
-    myUser = [user retain];
+- (BOOL) isButtonInPopover {
+    UIView *v = self;        
+    
+    while( v ) {
+        if (!strcmp(object_getClassName(v), "UIPopoverView"))
+            return YES;
+        
+        v = v.superview;
+    }
+        
+    return NO;
+}
+
+- (void) setFieldRecord:(ZKSObject *)record {    
+    self.myRecord = record;
+    
+    NSArray *requiredFields = nil;
+    
+    if( self.fieldType == UserField || self.fieldType == UserPhotoField )
+        requiredFields = [NSArray arrayWithObjects:@"Name", @"Email", @"FullPhotoUrl", nil];
+    else if( self.fieldType == RelatedRecordField )
+        requiredFields = [NSArray arrayWithObjects:@"Name", nil];
+        
+    if( record && requiredFields )
+        for( NSString *field in requiredFields )
+            if( [AccountUtil isEmpty:[record fieldValue:field]] ) {
+                [self removeTarget:self action:@selector(fieldTapped:) forControlEvents:UIControlEventTouchUpInside];
+                [self setTitleColor:[UIColor darkGrayColor] forState:UIControlStateNormal];
+                [self setTitleColor:[UIColor darkGrayColor] forState:UIControlStateHighlighted];
+                self.titleLabel.font = [UIFont fontWithName:@"HelveticaNeue" size:16];
+                
+                break;
+            }
+}
+
+- (NSString *) trimmedDetailText {
+    if( [self.buttonDetailText length] > 250 )
+        return [[self.buttonDetailText substringToIndex:250] stringByAppendingFormat:@"...\n[%i more characters]",
+                [self.buttonDetailText length] - 250];
+    
+    return self.buttonDetailText;
 }
 
 // Capture tapping a field
@@ -78,12 +127,21 @@ static NSString *openInMapsFormat = @"https://maps.google.com/maps?q=%@";
     UIViewController *popoverContent = nil;
     
     NSString *url = nil;
-    
+        
     switch( self.fieldType ) {
+        case RelatedRecordField:
+            [self walkFlyingWindows];
+            
+            if( self.flyingWindowController )
+                [self.detailViewController tearOffFlyingWindowsStartingWith:self.flyingWindowController inclusive:NO];
+            
+            [self.detailViewController addFlyingWindow:FlyingWindowRelatedRecordView withArg:self.myRecord];
+            
+            break;
         case EmailField:
             action = [[[UIActionSheet alloc] init] autorelease];
             action.delegate = self;
-            action.title = button.buttonDetailText;
+            action.title = button.buttonDetailText;            
             [action addButtonWithTitle:NSLocalizedString(@"Copy", @"Copy")];
             [action addButtonWithTitle:NSLocalizedString(@"Send Email", @"Send email")];
 
@@ -100,9 +158,9 @@ static NSString *openInMapsFormat = @"https://maps.google.com/maps?q=%@";
             
             break;
         case TextField:
-            action = [[[UIActionSheet alloc] initWithTitle:button.buttonDetailText
+            action = [[[UIActionSheet alloc] initWithTitle:[self trimmedDetailText]
                                                  delegate:self
-                                        cancelButtonTitle:nil
+                                         cancelButtonTitle:( [self isButtonInPopover] ? NSLocalizedString(@"Cancel", nil) : nil )
                                    destructiveButtonTitle:nil
                                         otherButtonTitles:NSLocalizedString(@"Copy", @"Copy"), nil] autorelease];
             
@@ -111,7 +169,8 @@ static NSString *openInMapsFormat = @"https://maps.google.com/maps?q=%@";
         case PhoneField:
             action = [[[UIActionSheet alloc] init] autorelease];
             action.delegate = self;
-            action.title = button.buttonDetailText;
+            action.title = self.buttonDetailText;
+            
             [action addButtonWithTitle:NSLocalizedString(@"Copy", @"Copy")];
             
             NSString *phone = [button.buttonDetailText stringByReplacingOccurrencesOfString:@" " withString:@""];
@@ -126,6 +185,9 @@ static NSString *openInMapsFormat = @"https://maps.google.com/maps?q=%@";
             if ([[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString:url]])
                 [action addButtonWithTitle:NSLocalizedString(@"Call with FaceTime", @"Call with FaceTime")];
             
+            if( [self isButtonInPopover] )
+                action.cancelButtonIndex = [action addButtonWithTitle:NSLocalizedString(@"Cancel", nil)];
+            
             [action showFromRect:button.frame inView:self.superview animated:YES];
             break;
         case AddressField:
@@ -139,28 +201,55 @@ static NSString *openInMapsFormat = @"https://maps.google.com/maps?q=%@";
             
             [action showFromRect:button.frame inView:self.superview animated:YES];            
             break;
+        case WebviewField:
+            popoverContent = [[UIViewController alloc] init];
+            UIWebView *wv = [[UIWebView alloc] initWithFrame:CGRectZero];
+            wv.delegate = self;
+            wv.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+            wv.scalesPageToFit = NO;
+            wv.allowsInlineMediaPlayback = NO;
+            wv.backgroundColor = [UIColor colorWithPatternImage:[UIImage imageNamed:@"panelBG.png"]];
+            
+            NSString *html =  [AccountUtil stringByAppendingSessionIdToImagesInHTMLString:
+                                    [AccountUtil stringByDecodingEntities:[NSString stringWithFormat:@"<body style=\"margin: 0; padding: 5; max-width: 600px;\">%@</body>", self.buttonDetailText]]
+                                                                                sessionId:[[[AccountUtil sharedAccountUtil] client] sessionId]];
+        
+            [wv loadHTMLString:html baseURL:nil];
+            popoverContent.view = wv;
+            [wv release];
+            
+            self.popoverController = [[[UIPopoverController alloc] initWithContentViewController:popoverContent] autorelease];
+            [popoverContent release];
+            
+            [self.popoverController presentPopoverFromRect:button.frame
+                                                    inView:self.superview
+                                  permittedArrowDirections:UIPopoverArrowDirectionAny
+                                                  animated:YES];            
+            
+            break;
         case UserField: 
-        case UserPhotoField:            
+        case UserPhotoField:                   
             popoverContent = [[UIViewController alloc] init];
             popoverContent.view = [self userPopoverView];
             popoverContent.contentSizeForViewInPopover = CGSizeMake( popoverContent.view.frame.size.width, popoverContent.view.frame.size.height );
-            popoverContent.title = [myUser fieldValue:@"Name"];
-            popoverContent.navigationItem.leftBarButtonItem = [[[UIBarButtonItem alloc] initWithTitle:NSLocalizedString(@"Email", @"Email action")
-                                                                                                style:UIBarButtonItemStyleBordered
-                                                                                               target:self
-                                                                                               action:@selector(openEmailComposer:)] autorelease];
+            popoverContent.title = [myRecord fieldValue:@"Name"];
+            
+            if ([MFMailComposeViewController canSendMail])
+                popoverContent.navigationItem.leftBarButtonItem = [[[UIBarButtonItem alloc] 
+                                                                    initWithTitle:NSLocalizedString(@"Email", @"Email action")
+                                                                            style:UIBarButtonItemStyleBordered
+                                                                            target:self
+                                                                            action:@selector(openEmailComposer:)] autorelease];
             
             if( [[AccountUtil sharedAccountUtil] isChatterEnabled] ) {
                 NSString *uId = [[[[AccountUtil sharedAccountUtil] client] currentUserInfo] userId];
-                NSString *pId = [myUser fieldValue:@"Id"];
+                NSString *pId = [myRecord fieldValue:@"Id"];
                 
                 if( uId && pId && ![uId isEqualToString:pId] ) {
-                    FollowButton *followButton = [FollowButton followButtonWithUserId:uId
-                                                                             parentId:pId
-                                                                               target:nil 
-                                                                               action:nil];
-                    [followButton setFrame:CGRectMake( 0, 0, 95, 30 )];
-                    popoverContent.navigationItem.rightBarButtonItem = [[[UIBarButtonItem alloc] initWithCustomView:followButton] autorelease];
+                    self.followButton = [FollowButton followButtonWithUserId:uId parentId:pId];
+                    self.followButton.delegate = self;
+                    
+                    popoverContent.navigationItem.rightBarButtonItem = [FollowButton loadingBarButtonItem];
                 }
             }
             
@@ -175,13 +264,19 @@ static NSString *openInMapsFormat = @"https://maps.google.com/maps?q=%@";
                                                     inView:self.superview
                                   permittedArrowDirections:UIPopoverArrowDirectionAny
                                                   animated:YES];
+            
+            [self.followButton performSelector:@selector(loadFollowState) withObject:nil afterDelay:0.5];
             break;
+        default: break;
     }
 }
 
 // We've clicked a button in this contextual menu
--(void)actionSheet:(UIActionSheet *)actionSheet clickedButtonAtIndex:(NSInteger)buttonIndex {    
+- (void) actionSheet:(UIActionSheet *)actionSheet clickedButtonAtIndex:(NSInteger)buttonIndex {    
     NSString *urlString = nil;
+        
+    if( buttonIndex == actionSheet.cancelButtonIndex )
+        return;
     
     if (buttonIndex == 0) {
         UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
@@ -241,7 +336,7 @@ static NSString *openInMapsFormat = @"https://maps.google.com/maps?q=%@";
     UIImage *userPhoto = nil;
     
     if( [[AccountUtil sharedAccountUtil] isChatterEnabled] ) {
-        NSString *url = [myUser fieldValue:@"FullPhotoUrl"];
+        NSString *url = [myRecord fieldValue:@"FullPhotoUrl"];
         
         userPhoto = [[AccountUtil sharedAccountUtil] userPhotoFromCache:url];
     }
@@ -261,9 +356,9 @@ static NSString *openInMapsFormat = @"https://maps.google.com/maps?q=%@";
     }
     
     // User title
-    if( [myUser fieldValue:@"Title"] ) {
+    if( [myRecord fieldValue:@"Title"] ) {
         UILabel *userTitle = [[UILabel alloc] initWithFrame:CGRectMake( curX, curY, view.frame.size.width - curX - 5, 20)];
-        userTitle.text = [myUser fieldValue:@"Title"];
+        userTitle.text = [myRecord fieldValue:@"Title"];
         userTitle.textColor = [UIColor whiteColor];
         userTitle.backgroundColor = [UIColor clearColor];
         userTitle.font = [UIFont fontWithName:@"Helvetica" size:18];
@@ -290,25 +385,37 @@ static NSString *openInMapsFormat = @"https://maps.google.com/maps?q=%@";
                                 nil];
     
     for( NSString *field in orderedKeys ) {
-        if( ![myUser fieldValue:field] || ![fieldNames objectForKey:field] )
+        if( ![myRecord fieldValue:field] || ![fieldNames objectForKey:field] )
             continue;
         
-        UILabel *label = [self labelForField:[fieldNames objectForKey:field]];
+        UILabel *label = [[self class] labelForField:[fieldNames objectForKey:field]];
         [label sizeToFit];
         [label setFrame:CGRectMake( curX, curY, label.frame.size.width, label.frame.size.height )];
         
         curY += label.frame.size.height;
         [view addSubview:label];
         
-        UILabel *value = [self valueForField:[myUser fieldValue:field]];
-        CGSize s = [value.text sizeWithFont:value.font
-                                constrainedToSize:CGSizeMake( view.frame.size.width - curX - 5, 9999 )
-                                    lineBreakMode:UILineBreakModeWordWrap];
+        enum FieldType ft = TextField;
         
-        [value setFrame:CGRectMake( curX, curY, s.width, s.height )];
-        curY += value.frame.size.height;
+        if( [[NSArray arrayWithObjects:@"Phone", @"MobilePhone", nil] containsObject:field] )
+            ft = PhoneField;
         
-        [view addSubview:value];
+        NSString *text = [myRecord fieldValue:field];
+        
+        FieldPopoverButton *valueButton = [FieldPopoverButton buttonWithText:text
+                                                                   fieldType:ft
+                                                                  detailText:text];
+        
+        if( ft == TextField )
+            [valueButton setTitleColor:[UIColor lightTextColor] forState:UIControlStateNormal];
+        
+        CGSize s = [text sizeWithFont:valueButton.titleLabel.font
+                          constrainedToSize:CGSizeMake( view.frame.size.width - curX - 5, 9999 )
+                              lineBreakMode:UILineBreakModeWordWrap];
+        [valueButton setFrame:CGRectMake( curX, curY, s.width, s.height )];
+        [view addSubview:valueButton];
+        
+        curY += s.height;
     }
     
     if( userPhoto && curY < userPhoto.size.height + 15 )
@@ -317,7 +424,7 @@ static NSString *openInMapsFormat = @"https://maps.google.com/maps?q=%@";
     if( [[AccountUtil sharedAccountUtil] isChatterEnabled] && curY < 150 )
         curY = 150;
     
-    [view setFrame:CGRectMake(0, 0, view.frame.size.width, MIN( curY, 450 ) )];
+    [view setFrame:CGRectMake(0, 0, view.frame.size.width, MIN( curY, 400 ) )];
     [view setContentSize:CGSizeMake( view.frame.size.width, curY + 1 )];
     [view setContentOffset:CGPointZero];
     
@@ -325,13 +432,85 @@ static NSString *openInMapsFormat = @"https://maps.google.com/maps?q=%@";
 }
 
 - (IBAction) openEmailComposer:(id)sender {
-    [self.detailViewController openEmailComposer:[myUser fieldValue:@"Email"]];
+    [self.detailViewController openEmailComposer:( myRecord ? [myRecord fieldValue:@"Email"] : self.buttonDetailText )];
 }
 
-- (UILabel *) labelForField:(NSString *)field {
+#pragma mark - webview delegate
+
+- (void) webViewDidFinishLoad:(UIWebView *)webView {    
+    CGSize s = [webView sizeThatFits:CGSizeZero];
+        
+    if( s.width < 320 ) 
+        s.width = 320;
+    else if( s.width > 600 ) 
+        s.width = 600;
+    
+    if( s.height < 100 ) 
+        s.height = 100;
+    else if( s.height > 500 ) 
+        s.height = 500;
+    
+    self.popoverController.popoverContentSize = s;
+    
+    [self.popoverController presentPopoverFromRect:self.frame
+                                            inView:self.superview
+                          permittedArrowDirections:UIPopoverArrowDirectionAny 
+                                          animated:YES];
+}
+
+- (void) webView:(UIWebView *)webView didFailLoadWithError:(NSError *)error {
+    NSLog(@"failed load");
+}
+
+- (BOOL) webView:(UIWebView *)webView shouldStartLoadWithRequest:(NSURLRequest *)request navigationType:(UIWebViewNavigationType)navigationType {
+    // Only load the initial rich text contents
+    if( [[[request URL] absoluteString] isEqualToString:@"about:blank"] )
+        return YES;
+    
+    // Otherwise, load the url in a separate webview
+    [self.detailViewController addFlyingWindow:FlyingWindowWebView withArg:[[request URL] absoluteString]];
+    [self.popoverController dismissPopoverAnimated:YES];
+    self.popoverController = nil;
+    
+    return NO;
+}
+
+// a silly little function to determine in which flying window this button appears
+- (void) walkFlyingWindows {
+    UIView *parent = nil;
+    
+    if( self.flyingWindowController )
+        return;
+    
+    for( FlyingWindowController *fwc in [self.detailViewController flyingWindows] ) {
+        parent = self.superview;
+        
+        while( parent ) {
+            if( [fwc.view isEqual:parent] ) {
+                self.flyingWindowController = fwc;
+                return;
+            }
+            
+            parent = [parent superview];
+        }
+    }
+}
+
+#pragma mark - follow button delegate
+
+- (void)followButtonDidChangeState:(FollowButton *)followButton toState:(enum FollowButtonState)state isUserAction:(BOOL)isUserAction {
+    if( state == FollowLoading )
+        [(((UINavigationController *)self.popoverController.contentViewController).visibleViewController).navigationItem setRightBarButtonItem:[FollowButton loadingBarButtonItem] animated:YES];
+    else
+        [(((UINavigationController *)self.popoverController.contentViewController).visibleViewController).navigationItem setRightBarButtonItem:self.followButton animated:YES];
+}
+
+#pragma mark - util
+
++ (UILabel *) labelForField:(NSString *)field {
     UILabel *label = [[UILabel alloc] init];
     label.text = field;
-    label.font = [UIFont boldSystemFontOfSize:15];
+    label.font = [UIFont boldSystemFontOfSize:18];
     label.textColor = AppSecondaryColor;
     label.backgroundColor = [UIColor clearColor];
     label.shadowColor = [UIColor darkTextColor];
@@ -342,7 +521,7 @@ static NSString *openInMapsFormat = @"https://maps.google.com/maps?q=%@";
     return [label autorelease];
 }
 
-- (UILabel *) valueForField:(NSString *)value {
++ (UILabel *) valueForField:(NSString *)value {
     UILabel *label = [[UILabel alloc] init];
     label.text = value;
     label.textColor = [UIColor lightTextColor];
@@ -356,8 +535,10 @@ static NSString *openInMapsFormat = @"https://maps.google.com/maps?q=%@";
 }
 
 - (void)dealloc {
-    [myUser release];
+    [myRecord release];
     [popoverController release];
+    [buttonDetailText release];
+    [followButton release];
     [super dealloc];
 }
 

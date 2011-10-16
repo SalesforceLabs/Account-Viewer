@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -30,12 +30,12 @@
 #import <UIKit/UIKit.h>
 #import "zkSforce.h"
 #import "AccountUtil.h"
+#import "FollowButton.h"
 
 @class DetailViewController;
+@class FlyingWindowController;
 
-@interface FieldPopoverButton : UIButton <UIPopoverControllerDelegate, UIActionSheetDelegate> {
-    ZKSObject *myUser;
-}
+@interface FieldPopoverButton : UIButton <UIPopoverControllerDelegate, UIActionSheetDelegate, UIWebViewDelegate, FollowButtonDelegate> {}
 
 enum FieldType {
     EmailField,
@@ -45,25 +45,33 @@ enum FieldType {
     AddressField,
     PhoneField,
     UserPhotoField,
+    WebviewField,
+    RelatedRecordField
 };
 
 @property enum FieldType fieldType;
 
+@property (nonatomic, retain) ZKSObject *myRecord;
 @property (nonatomic, retain) NSString *buttonDetailText;
 @property (nonatomic, retain) UIPopoverController *popoverController;
+@property (nonatomic, retain) FollowButton *followButton;
 
 @property (nonatomic, assign) DetailViewController *detailViewController;
+@property (nonatomic, assign) FlyingWindowController *flyingWindowController;
 
 + (id) buttonWithText:(NSString *)text fieldType:(enum FieldType)fT detailText:(NSString *)detailText;
 
-- (void) setFieldUser:(ZKSObject *)user;
+- (NSString *) trimmedDetailText;
+
+- (void) setFieldRecord:(ZKSObject *)record;
 - (void) fieldTapped:(id)button;
 - (UIScrollView *) userPopoverView;
-
+- (void) walkFlyingWindows;
 - (void) openEmailComposer:(id)sender;
+- (BOOL) isButtonInPopover;
 
 // utility functions
-- (UILabel *) labelForField:(NSString *)field;
-- (UILabel *) valueForField:(NSString *)value;
++ (UILabel *) labelForField:(NSString *)field;
++ (UILabel *) valueForField:(NSString *)value;
 
 @end

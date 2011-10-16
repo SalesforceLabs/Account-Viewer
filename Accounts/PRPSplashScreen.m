@@ -79,7 +79,17 @@
     }
 }
 
+// This is a really dirty hack because the device can't reliably detect at launch which
+// orientation it's in, but this function still generates notifications so we can
+// switch out the splash image
 - (BOOL) shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation {
+    if( UIInterfaceOrientationIsPortrait(toInterfaceOrientation) )
+        self.splashImage = [UIImage imageNamed:@"Default-Portrait.png"];
+    else
+        self.splashImage = [UIImage imageNamed:@"Default-Landscape.png"];
+    
+    [self loadView];
+        
     return YES;
 }
 

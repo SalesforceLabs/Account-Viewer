@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -37,6 +37,7 @@
 #import "FieldPopoverButton.h"
 #import "RootViewController.h"
 #import <QuartzCore/QuartzCore.h>
+#import "FieldWebview.h"
 
 @implementation AccountUtil
 
@@ -66,14 +67,22 @@ BOOL chatterEnabled = NO;
 
 #pragma mark - caching functions
 
-- (void) emptyCaches {
+- (void) emptyCaches:(BOOL)emptyAll {
+    [SimpleKeychain delete:FollowedAccounts];
+    activityCount = 0;
     [geoLocationCache removeAllObjects];
     [userPhotoCache removeAllObjects];
+    
+    if( emptyAll ) {
+        [globalDescribeObjects removeAllObjects];
+        [layoutCache removeAllObjects];
+        [describeCache removeAllObjects];
+    }
 }
 
 - (void) addCoordinatesToCache:(CLLocationCoordinate2D)coordinates accountId:(NSString *)accountId {
     if( !geoLocationCache )
-        geoLocationCache = [[NSMutableDictionary alloc] init];
+        geoLocationCache = [[NSMutableDictionary dictionary] retain];
         
     [geoLocationCache setObject:[NSArray arrayWithObjects:[NSNumber numberWithDouble:coordinates.latitude], [NSNumber numberWithDouble:coordinates.longitude], nil]
                          forKey:accountId];        
@@ -81,7 +90,7 @@ BOOL chatterEnabled = NO;
 
 - (NSArray *)coordinatesFromCache:(NSString *)accountId {
     if( !geoLocationCache )
-        geoLocationCache = [[NSMutableDictionary alloc] init];
+        geoLocationCache = [[NSMutableDictionary dictionary] retain];
     
     // nil or an array
     return [geoLocationCache objectForKey:accountId];
@@ -89,7 +98,7 @@ BOOL chatterEnabled = NO;
 
 - (void) addUserPhotoToCache:(UIImage *)photo forURL:(NSString *)photoURL {
     if( !userPhotoCache )
-        userPhotoCache = [[NSMutableDictionary alloc] init];
+        userPhotoCache = [[NSMutableDictionary dictionary] retain];
     
     if( !photo )
         return;
@@ -99,7 +108,7 @@ BOOL chatterEnabled = NO;
 
 - (UIImage *) userPhotoFromCache:(NSString *)photoURL {
     if( !userPhotoCache )
-        userPhotoCache = [[NSMutableDictionary alloc] init];
+        userPhotoCache = [[NSMutableDictionary dictionary] retain];
     
     return [userPhotoCache objectForKey:photoURL];
 }
@@ -113,7 +122,7 @@ BOOL chatterEnabled = NO;
     sectionLabel.backgroundColor = [UIColor clearColor];
     sectionLabel.textColor = [UIColor darkTextColor];
     sectionLabel.text = section;
-    sectionLabel.font = [UIFont fontWithName:@"HelveticaNeue" size:18];
+    sectionLabel.font = [UIFont fontWithName:@"HelveticaNeue" size:20];
     sectionLabel.numberOfLines = 1;
     CGSize s = [sectionLabel.text sizeWithFont:sectionLabel.font];
     [sectionLabel setFrame:CGRectMake( 25, 0, s.width, s.height )];
@@ -121,35 +130,50 @@ BOOL chatterEnabled = NO;
     [sectionView addSubview:sectionLabel];
     [sectionLabel release];    
     
-    UIImage *u = [UIImage imageNamed:@"sectionHeaderUnderline.png"];
-    UIImageView *underline = [[[UIImageView alloc] initWithImage:u] autorelease];
-    [underline setFrame:CGRectMake(0, s.height + 5, u.size.width, u.size.height)];
+    UIImage *u = [UIImage imageNamed:@"sectionLine.png"];
     
-    [sectionView addSubview:underline];
+    // Underline to the left of the text
+    UIImageView *underlineLeft = [[UIImageView alloc] initWithImage:u];
+    [underlineLeft setFrame:CGRectMake(0, s.height + 5, 25, 3)];
+    [sectionView addSubview:underlineLeft];
+    [underlineLeft release];
     
-    [sectionView setFrame:CGRectMake(0, 0, u.size.width, s.height + u.size.height + 5 )];
+    // Blue text underline, sized to the section
+    UIView *blueBG = [[UIView alloc] initWithFrame:CGRectMake( 25, s.height + 5, s.width, 3 )];
+    blueBG.backgroundColor = AppSecondaryColor;
+    [sectionView addSubview:blueBG];
+    [blueBG release];
+    
+    // Underline to the right of the text
+    UIImageView *underlineRight = [[UIImageView alloc] initWithImage:u];
+    [underlineRight setFrame:CGRectMake( 25 + s.width, s.height + 5, 600, 3)];
+    [sectionView addSubview:underlineRight];
+    [underlineRight release];
+    
+    [sectionView setFrame:CGRectMake(0, 0, 700, s.height + u.size.height + 5 )];
     
     return [sectionView autorelease];
 }
 
-+ (UIView *)createViewForField:(NSString *)field withLabel:(NSString *)label withDictionary:(NSDictionary *)dict withTarget:(id)target {    
+- (UIView *)createViewForField:(NSString *)field withLabel:(NSString *)label withDictionary:(NSDictionary *)dict withTarget:(id)target {    
     UIView *fieldView = [[UIView alloc] init];
-    
+        
     // Get the field describe for this field.
-    ZKDescribeField *desc = [[[AccountUtil sharedAccountUtil] getAccountDescribe] fieldWithName:field];
+    NSString *sObjectName = [self sObjectFromRecordId:[dict objectForKey:@"Id"]];
+    ZKDescribeField *desc = [self describeForField:field sObject:sObjectName];
     
     // Label for this field
     UILabel *fieldLabel = [[UILabel alloc] initWithFrame:CGRectZero];
     fieldLabel.textColor = [UIColor lightGrayColor];
     fieldLabel.backgroundColor = [UIColor clearColor];
     fieldLabel.textAlignment = UITextAlignmentRight;
-    fieldLabel.text = NSLocalizedString( label, @"localized field label" );
+    fieldLabel.text = label;
     fieldLabel.numberOfLines = 0;
     fieldLabel.adjustsFontSizeToFitWidth = NO;
-    fieldLabel.font = [UIFont fontWithName:@"HelveticaNeue" size:14];
+    fieldLabel.font = [UIFont fontWithName:@"HelveticaNeue" size:16];
     
     CGSize s = [fieldLabel.text sizeWithFont:fieldLabel.font
-                           constrainedToSize:CGSizeMake( FIELDLABELWIDTH, 999 )
+                           constrainedToSize:CGSizeMake( FIELDLABELWIDTH, FIELDVALUEHEIGHT )
                                lineBreakMode:UILineBreakModeWordWrap];
     
     if( s.width < FIELDLABELWIDTH )
@@ -159,54 +183,42 @@ BOOL chatterEnabled = NO;
     
     // Value for this field
     // Get the properly formatted text contents of this field
-    NSString *value = [[AccountUtil sharedAccountUtil] textValueForField:field withDictionary:dict];
+    NSString *value = [self textValueForField:field withDictionary:dict];
     
     // If this is modified or created by, also add the datetime
     if( [field isEqualToString:@"LastModifiedById"] && ![AccountUtil isEmpty:[dict objectForKey:@"LastModifiedDate"]] )
-        value = [value stringByAppendingFormat:@"\n%@", [[AccountUtil sharedAccountUtil] textValueForField:@"LastModifiedDate"
+        value = [value stringByAppendingFormat:@"\n%@", [self textValueForField:@"LastModifiedDate"
                                                                                             withDictionary:dict]];
     
     if( [field isEqualToString:@"CreatedById"] && ![AccountUtil isEmpty:[dict objectForKey:@"CreatedDate"]] )
-        value = [value stringByAppendingFormat:@"\n%@", [[AccountUtil sharedAccountUtil] textValueForField:@"CreatedDate"
+        value = [value stringByAppendingFormat:@"\n%@", [self textValueForField:@"CreatedDate"
                                                                                             withDictionary:dict]];
-    
+        
     enum FieldType f;
-    BOOL isWebView = NO;
     
     if( [[desc type] isEqualToString:@"email"] || [field isEqualToString:@"Email"] )
         f = EmailField;
     else if( [[desc type] isEqualToString:@"url"] || [field isEqualToString:@"Website"] )
         f = URLField;
-    else if( [[desc type] isEqualToString:@"reference"] && [[desc referenceTo] containsObject:@"User"] )
-        f = UserField;
-    else if( [field rangeOfString:@"Street"].location != NSNotFound || [field rangeOfString:@"Address"].location != NSNotFound )
+    else if( [[desc type] isEqualToString:@"reference"] && ![AccountUtil isEmpty:[dict objectForKey:field]] ) {
+        ZKDescribeGlobalSObject *ref = [self describeGlobalsObject:[self sObjectFromRecordId:[dict objectForKey:field]]];
+        
+        if( !ref )
+            f = TextField;
+        else if( [[ref name] isEqualToString:@"User"] )
+            f = UserField;
+        else if( [ref queryable] && [ref layoutable] )
+            f = RelatedRecordField;
+        else
+            f = TextField;
+    } else if( [field rangeOfString:@"Street"].location != NSNotFound || [field rangeOfString:@"Address"].location != NSNotFound )
         f = AddressField;
     else if( [[desc type] isEqualToString:@"phone"] || [field isEqualToString:@"Phone"] || [field isEqualToString:@"Fax"] )
         f = PhoneField;
     else if( [[desc type] isEqualToString:@"textarea"] && [desc htmlFormatted] ) {
-        isWebView = YES;
-        f = TextField;
+        f = WebviewField;
     } else
         f = TextField;
-    
-    // Strip out HTML, for now
-    if( isWebView )
-        value = [self stripHTMLTags:value];
-    
-    /*if( isWebview ) {
-        FieldWebview *fwv = [FieldWebview fieldWebviewWithHTML:value withDetailViewController:target];
-        [fwv setFrame:CGRectMake( 10 + fieldLabel.frame.size.width, 0, fwv.frame.size.width, fwv.frame.size.height )];
-        
-        NSLog(@"fwv sized to %@", NSStringFromCGRect(fwv.frame));
-        
-        [fieldView addSubview:fieldLabel];
-        [fieldView addSubview:fwv];
-
-        [fieldView setFrame:CGRectMake( 0, 0, fieldLabel.frame.size.width + fwv.frame.size.width, 
-                                       MAX( fieldLabel.frame.size.height, fwv.frame.size.height ) )];
-        
-        return [fieldView autorelease];
-    }*/
     
     FieldPopoverButton *fieldValue = [FieldPopoverButton buttonWithText:value fieldType:f detailText:value];
     fieldValue.detailViewController = target;
@@ -221,68 +233,78 @@ BOOL chatterEnabled = NO;
         else
             fieldImage = [UIImage imageNamed:@"check_no.png"];
         
-        value = nil;
-    } else if( [[desc type] isEqualToString:@"reference"] && [[desc referenceTo] containsObject:@"User"] && 
+        value = @"";
+    } else if( f == UserField && 
               ![AccountUtil  isEmpty:[dict objectForKey:[desc relationshipName]]] &&
               [[dict objectForKey:[desc relationshipName]] isKindOfClass:[ZKSObject class]] ) {
         ZKSObject *user = [dict objectForKey:[desc relationshipName]];        
         [user setFieldValue:[dict objectForKey:field] field:@"Id"];
-        [fieldValue setFieldUser:user];
+        [fieldValue setFieldRecord:user];
         
         if( [[AccountUtil sharedAccountUtil] isChatterEnabled] ) {
             NSString *smallDestURL = [[dict objectForKey:[desc relationshipName]] fieldValue:@"SmallPhotoUrl"],
             *fullDestURL = [[dict objectForKey:[desc relationshipName]] fieldValue:@"FullPhotoUrl"];
             
             // Try our userphoto cache first
-            fieldImage = [[AccountUtil sharedAccountUtil] userPhotoFromCache:smallDestURL];
-            UIImage *fullImage = [[AccountUtil sharedAccountUtil] userPhotoFromCache:fullDestURL];
-            
-            if( !fieldImage ) {
-                NSLog(@"cache miss for smalluserphoto, pulling from %@", smallDestURL);
-                NSString *imageURL = [NSString stringWithFormat:@"%@?oauth_token=%@",
-                                      smallDestURL,
-                                      [[[AccountUtil sharedAccountUtil] client] sessionId]];
+            if( ![AccountUtil isEmpty:smallDestURL] ) {
+                fieldImage = [[AccountUtil sharedAccountUtil] userPhotoFromCache:smallDestURL];
                 
-                if( [imageURL hasPrefix:@"/"] )
-                    imageURL = [NSString stringWithFormat:@"%@%@",
-                                [SimpleKeychain load:instanceURLKey],
-                                imageURL];                    
-                
-                NSData* imageData = [[NSData alloc] initWithContentsOfURL:[NSURL URLWithString:imageURL]];
-                
-                if( !imageData )
-                    fieldImage = [UIImage imageNamed:@"user24.png"];
-                else {
-                    fieldImage = [UIImage imageWithData:imageData];
+                if( !fieldImage ) {
+                    NSLog(@"cache miss for smalluserphoto, pulling from %@", smallDestURL);
+                    NSString *imageURL = [NSString stringWithFormat:@"%@?oauth_token=%@",
+                                          smallDestURL,
+                                          [[[AccountUtil sharedAccountUtil] client] sessionId]];
                     
-                    [[AccountUtil sharedAccountUtil] addUserPhotoToCache:fieldImage forURL:smallDestURL];
+                    if( [imageURL hasPrefix:@"/"] )
+                        imageURL = [NSString stringWithFormat:@"%@%@",
+                                    [SimpleKeychain load:instanceURLKey],
+                                    imageURL];                    
+                    
+                    NSData* imageData = [[NSData alloc] initWithContentsOfURL:[NSURL URLWithString:imageURL]];
+                    
+                    if( !imageData )
+                        fieldImage = [UIImage imageNamed:@"user24.png"];
+                    else {
+                        fieldImage = [UIImage imageWithData:imageData];
+                        
+                        [[AccountUtil sharedAccountUtil] addUserPhotoToCache:fieldImage forURL:smallDestURL];
+                    }
+                    
+                    [imageData release];
                 }
                 
-                [imageData release];
+                fieldImage = [AccountUtil resizeImage:fieldImage toSize:CGSizeMake(24, 24)];
+                fieldImage = [AccountUtil roundCornersOfImage:fieldImage roundRadius:5];
             }
             
-            fieldImage = [AccountUtil resizeImage:fieldImage toSize:CGSizeMake(24, 24)];
-            fieldImage = [AccountUtil roundCornersOfImage:fieldImage roundRadius:5];
-            
-            if( !fullImage ) {
-                NSLog(@"cache miss for fulluserphoto, pulling from %@", fullDestURL);
-                NSString *imageURL = [NSString stringWithFormat:@"%@?oauth_token=%@",
-                                      fullDestURL,
-                                      [[[AccountUtil sharedAccountUtil] client] sessionId]];
+            if( ![AccountUtil isEmpty:fullDestURL] ) {
+                UIImage *fullImage = [[AccountUtil sharedAccountUtil] userPhotoFromCache:fullDestURL];
                 
-                if( [imageURL hasPrefix:@"/"] )
-                    imageURL = [NSString stringWithFormat:@"%@%@",
-                                [SimpleKeychain load:instanceURLKey],
-                                imageURL];
-                
-                NSData* imageData = [[NSData alloc] initWithContentsOfURL:[NSURL URLWithString:imageURL]];
-                
-                if( imageData )
-                    [[AccountUtil sharedAccountUtil] addUserPhotoToCache:[UIImage imageWithData:imageData] forURL:fullDestURL];
-                
-                [imageData release];
+                if( !fullImage ) {
+                    NSLog(@"cache miss for fulluserphoto, pulling from %@", fullDestURL);
+                    NSString *imageURL = [NSString stringWithFormat:@"%@?oauth_token=%@",
+                                          fullDestURL,
+                                          [[[AccountUtil sharedAccountUtil] client] sessionId]];
+                    
+                    if( [imageURL hasPrefix:@"/"] )
+                        imageURL = [NSString stringWithFormat:@"%@%@",
+                                    [SimpleKeychain load:instanceURLKey],
+                                    imageURL];
+                    
+                    NSData* imageData = [[NSData alloc] initWithContentsOfURL:[NSURL URLWithString:imageURL]];
+                    
+                    if( imageData )
+                        [[AccountUtil sharedAccountUtil] addUserPhotoToCache:[UIImage imageWithData:imageData] forURL:fullDestURL];
+                    
+                    [imageData release];
+                }
             }
         }
+    } else if( f == RelatedRecordField &&
+              ![AccountUtil isEmpty:[dict objectForKey:[desc relationshipName]]] ) {
+        ZKSObject *record = [dict objectForKey:[desc relationshipName]];        
+        [record setFieldValue:[dict objectForKey:field] field:@"Id"];
+        [fieldValue setFieldRecord:record];
     }
     
     // If there is an image associated with this field, display it
@@ -301,41 +323,124 @@ BOOL chatterEnabled = NO;
         [photoView release];
     }
     
-    // Add the label
+    if( fieldValue.imageView.image ) {
+        CGRect r = fieldValue.frame;
+        r.size = fieldValue.imageView.image.size;
+        [fieldValue setFrame:r];
+    } else {
+        // Resize the value to fit its text
+        CGRect frame = [fieldValue frame];
+        CGSize size;
+        
+        if( ![value isEqualToString:@""] )
+            size = [fieldValue.titleLabel.text sizeWithFont:fieldValue.titleLabel.font
+                                          constrainedToSize:CGSizeMake(FIELDVALUEWIDTH, FIELDVALUEHEIGHT)
+                                              lineBreakMode:UILineBreakModeWordWrap];
+        else {
+            size = CGSizeMake( 10, fieldLabel.frame.size.height );
+            fieldValue.hidden = YES;
+        }
+        
+        frame.size = size;
+        [fieldValue setFrame:frame];
+    }
+    
     [fieldView addSubview:fieldLabel];
-    
-    // Add the value
-    [fieldValue setTitle:value forState:UIControlStateNormal];
-    
-    // Resize the value to fit its text
-    CGRect frame = [fieldValue frame];
-    CGSize size;
-    
-    if( ![value isEqualToString:@""] )
-        size = [fieldValue.titleLabel.text sizeWithFont:fieldValue.titleLabel.font
-                                      constrainedToSize:CGSizeMake(FIELDVALUEWIDTH, FIELDVALUEHEIGHT)
-                                          lineBreakMode:UILineBreakModeWordWrap];
-    else
-        size = CGSizeMake( 10, fieldLabel.frame.size.height );
-    
-    frame.size.height = size.height;
-    frame.size.width = size.width;
-    [fieldValue setFrame:frame];
+    [fieldLabel release];
     
     [fieldView addSubview:fieldValue];
     
-    frame = fieldView.frame;
+    CGRect frame = fieldView.frame;
     
     frame.size = CGSizeMake( fieldLabel.frame.size.width + fieldValue.frame.size.width, MAX( fieldLabel.frame.size.height, fieldValue.frame.size.height ) );
     
     [fieldView setFrame:frame];
     
-    [fieldLabel release];   
-    
     return [fieldView autorelease];
 }
 
-+ (UIView *) layoutViewForAccount:(NSDictionary *)account withTarget:(id)target isLocalAccount:(BOOL)isLocalAccount {
+- (UIView *) layoutViewForLocalRecord:(NSDictionary *)record withTarget:(id)target {
+    int curY = 5, fieldCount = 0;
+    BOOL showEmptyFields = [[NSUserDefaults standardUserDefaults] boolForKey:emptyFieldsKey];
+    
+    UIView *view = [[UIView alloc] initWithFrame:CGRectZero];
+    
+    view.autoresizingMask = UIViewAutoresizingNone;
+    view.backgroundColor = [UIColor clearColor];
+    
+    UIView *sectionHeader = [[self class] createViewForSection:NSLocalizedString(@"Account Information", @"Account information section header")];
+    [sectionHeader setFrame:CGRectMake(0, curY, sectionHeader.frame.size.width, sectionHeader.frame.size.height)];
+    curY += sectionHeader.frame.size.height + SECTIONSPACING;
+    [view addSubview:sectionHeader];  
+    
+    // Iterate each field in this dictionary and display
+    for( NSString *field in [[self class] sortArray:[record allKeys]] ) {
+        // If there is no value in this field, we may not show it
+        if( !showEmptyFields && [AccountUtil isEmpty:[record objectForKey:field]] )
+            continue;
+        
+        if( [[record objectForKey:field] rangeOfString:@"<img src"].location != NSNotFound || [[record objectForKey:field] rangeOfString:@"<a href"].location != NSNotFound )
+            continue;
+        
+        if( [record objectForKey:@"Street"] && [[NSArray arrayWithObjects:@"City", @"State", @"PostalCode", @"Country", nil] containsObject:field] )
+            continue;
+        
+        if( [record objectForKey:@"BillingStreet"] && [[NSArray arrayWithObjects:@"BillingCity", @"BillingState", @"BillingPostalCode", @"BillingCountry", nil] containsObject:field] )
+            continue;
+        
+        if( [record objectForKey:@"ShippingStreet"] && [[NSArray arrayWithObjects:@"ShippingCity", @"ShippingState", @"ShippingPostalCode", @"ShippingCountry", nil] containsObject:field] )
+            continue;
+        
+        if( [field isEqualToString:@"Id"] || [field hasSuffix:@"Id"] )
+            continue;
+        
+        NSString *label = nil;
+        
+        if( [field isEqualToString:@"Billing Street"] )
+            label = @"Billing Address";
+        else if( [field isEqualToString:@"Shipping Street"] )
+            label = @"Shipping Address";
+        else if( [field isEqualToString:@"Street"] )
+            label = @"Address";
+        else
+            label = field;
+        
+        UIView *fieldView = [self createViewForField:field 
+                                           withLabel:label
+                                      withDictionary:record 
+                                          withTarget:target];
+        
+        fieldView.tag = fieldCount;
+        
+        [fieldView setFrame:CGRectMake( 0, curY, fieldView.frame.size.width, fieldView.frame.size.height)];
+        
+        curY += fieldView.frame.size.height + FIELDSPACING;
+        
+        [view addSubview:fieldView];                
+        
+        fieldCount++;
+    }
+    
+    if( fieldCount == 0 ) {        
+        [PRPAlertView showWithTitle:NSLocalizedString(@"Alert", @"Alert")
+                            message:NSLocalizedString(@"Failed to load this account.", @"Account query failed")
+                        cancelTitle:NSLocalizedString(@"Cancel", @"Cancel")
+                        cancelBlock:nil
+                         otherTitle:NSLocalizedString(@"Retry", @"Retry")
+                         otherBlock:^(void) {
+                             if( [target respondsToSelector:@selector(loadAccount)] )
+                                 [target performSelector:@selector(loadAccount)];
+                         }];
+        [view release];
+        return nil;
+    }
+    
+    [view setFrame:CGRectMake(0, 0, 0, curY)];
+    
+    return [view autorelease];
+}
+
+- (UIView *) layoutViewForsObject:(ZKSObject *)sObject withTarget:(id)target singleColumn:(BOOL)singleColumn {
     int curY = 5, fieldCount = 0, sectionCount = 0;
     BOOL showEmptyFields = [[NSUserDefaults standardUserDefaults] boolForKey:emptyFieldsKey];
     
@@ -344,140 +449,94 @@ BOOL chatterEnabled = NO;
     view.autoresizingMask = UIViewAutoresizingNone;
     view.backgroundColor = [UIColor clearColor];
     
-    if( isLocalAccount ) {
-        UIView *sectionHeader = [[self class] createViewForSection:NSLocalizedString(@"Account Information", @"Account information section header")];
-        [sectionHeader setFrame:CGRectMake(0, curY, sectionHeader.frame.size.width, sectionHeader.frame.size.height)];
-        curY += sectionHeader.frame.size.height + SECTIONSPACING;
-        [view addSubview:sectionHeader];  
-        
-        // Iterate each field in this dictionary and display
-        for( NSString *field in [[self class] sortArray:[account allKeys]] ) {
-            // If there is no value in this field, we may not show it
-            if( !showEmptyFields && [AccountUtil isEmpty:[account objectForKey:field]] )
-                continue;
+    // Get the  layout for this object.
+    ZKDescribeLayout *layout = [self layoutForRecord:[sObject fields]];
+    
+    if( !layout )
+        return [view autorelease];
+    
+    NSString *sObjectName = [self sObjectFromRecordId:[sObject id]];
+    
+    // 1. Loop through all sections in this page layout
+    for( ZKDescribeLayoutSection *section in [layout detailLayoutSections] ) {
+        if( [section useHeading] ) {
+            UIView *sectionHeader = [AccountUtil createViewForSection:[section heading]];
+            sectionHeader.tag = sectionCount;
             
-            if( [[account objectForKey:field] rangeOfString:@"<img src"].location != NSNotFound || [[account objectForKey:field] rangeOfString:@"<a href"].location != NSNotFound )
-                continue;
+            [sectionHeader setFrame:CGRectMake(0, curY, sectionHeader.frame.size.width, sectionHeader.frame.size.height)];
             
-            if( [account objectForKey:@"Street"] && [[NSArray arrayWithObjects:@"City", @"State", @"PostalCode", @"Country", nil] containsObject:field] )
-                continue;
+            curY += sectionHeader.frame.size.height + SECTIONSPACING;
             
-            if( [account objectForKey:@"BillingStreet"] && [[NSArray arrayWithObjects:@"BillingCity", @"BillingState", @"BillingPostalCode", @"BillingCountry", nil] containsObject:field] )
-                continue;
-            
-            if( [account objectForKey:@"ShippingStreet"] && [[NSArray arrayWithObjects:@"ShippingCity", @"ShippingState", @"ShippingPostalCode", @"ShippingCountry", nil] containsObject:field] )
-                continue;
-            
-            if( [field isEqualToString:@"Id"] || [field hasSuffix:@"Id"] )
-                continue;
-            
-            NSString *label = nil;
-            
-            if( [field isEqualToString:@"Billing Street"] )
-                label = @"Billing Address";
-            else if( [field isEqualToString:@"Shipping Street"] )
-                label = @"Shipping Address";
-            else if( [field isEqualToString:@"Street"] )
-                label = @"Address";
-            else
-                label = field;
-            
-            UIView *fieldView = [AccountUtil createViewForField:field 
-                                                      withLabel:label
-                                                 withDictionary:account 
-                                                     withTarget:target];
-            
-            fieldView.tag = fieldCount;
-            
-            [fieldView setFrame:CGRectMake( 0, curY, fieldView.frame.size.width, fieldView.frame.size.height)];
-            
-            curY += fieldView.frame.size.height + FIELDSPACING;
-            
-            [view addSubview:fieldView];                
-            
-            fieldCount++;
+            [view addSubview:sectionHeader];   
         }
-    } else {
-        // Get the Account layout for this account's record type.
-        ZKDescribeLayout *accLayout = [[AccountUtil sharedAccountUtil] layoutForRecordTypeId:[account objectForKey:@"RecordTypeId"]];
         
-        // Generate labels and values for all fields on this account
-        // and then add them to our field scroll view, tagging each one
+        int sectionFields = 0;
         
-        // 1. Loop through all sections in this page layout
-        for( ZKDescribeLayoutSection *section in [accLayout detailLayoutSections] ) {
-            // Add the section to our layout
+        // 2. Loop through all rows within this section
+        for( ZKDescribeLayoutRow *dlr in [section layoutRows]) {
+            float rowHeight = 0, curX = 0;
             
-            if( [section useHeading] ) {
-                UIView *sectionHeader = [AccountUtil createViewForSection:[section heading]];
-                sectionHeader.tag = sectionCount;
+            // 3. Each individual item on this row
+            for ( ZKDescribeLayoutItem *item in [dlr layoutItems] ) {                
+                if( [item placeholder] || [[item layoutComponents] count] == 0 )
+                    continue;
                 
-                [sectionHeader setFrame:CGRectMake(0, curY, sectionHeader.frame.size.width, sectionHeader.frame.size.height)];
+                ZKDescribeLayoutComponent *f = [[item layoutComponents] objectAtIndex:0];
                 
-                curY += sectionHeader.frame.size.height + SECTIONSPACING;
+                if( ![[f typeName] isEqualToString:@"Field"] )
+                    continue;
                 
-                [view addSubview:sectionHeader];   
+                NSString *field = [[f value] isEqualToString:@"Salutation"] ? @"Name" : [f value];
+                
+                // Position this field within our scrollview, alternating left and right sides
+                ZKDescribeField *desc = [[AccountUtil sharedAccountUtil] describeForField:field sObject:sObjectName];
+                                    
+                if( !showEmptyFields && [AccountUtil isEmpty:[sObject fieldValue:field]] )
+                    continue;
+                
+                // If this is a formula field with a hyperlink or an image, skip for now.
+                if( [desc calculated] && ![AccountUtil isEmpty:[sObject fieldValue:field]] &&
+                   ( [[sObject fieldValue:[f value]] rangeOfString:@"<img src"].location != NSNotFound || 
+                    [[sObject fieldValue:[f value]] rangeOfString:@"<a href"].location != NSNotFound ) )
+                    continue;
+                
+                UIView *fieldView = [self createViewForField:field
+                                                   withLabel:[item label] 
+                                              withDictionary:[sObject fields]
+                                                  withTarget:target];
+                
+                rowHeight = MAX( rowHeight, fieldView.frame.size.height );
+                sectionFields++;
+                fieldView.tag = fieldCount;
+                
+                [fieldView setFrame:CGRectMake( curX, curY, fieldView.frame.size.width, fieldView.frame.size.height)];
+                
+                if( !singleColumn )
+                    curX = 345;
+                else
+                    curY += fieldView.frame.size.height + FIELDSPACING;
+                
+                [view addSubview:fieldView];                
+                
+                fieldCount++;
             }
             
-            int sectionFields = 0;
-            
-            // 2. Loop through all rows within this section
-            for( ZKDescribeLayoutRow *dlr in [section layoutRows]) {
-                //int rowHeight = 0;
-                
-                // 3. Each individual item on this row
-                for ( ZKDescribeLayoutItem *item in [dlr layoutItems] ) {                
-                    if( [item placeholder] || [[item layoutComponents] count] == 0 )
-                        continue;
-                    
-                    ZKDescribeLayoutComponent *f = [[item layoutComponents] objectAtIndex:0];
-                    
-                    if( ![[f typeName] isEqualToString:@"Field"] )
-                        continue;
-                    
-                    // Position this field within our scrollview, alternating left and right sides
-                    ZKDescribeField *desc = [[[AccountUtil sharedAccountUtil] getAccountDescribe] fieldWithName:[f value]];
-                    
-                    if( !showEmptyFields && [AccountUtil isEmpty:[account objectForKey:[f value]]] )
-                        continue;
-                    
-                    // If this is a formula field with a hyperlink or an image, skip for now.
-                    // This is a janky hack.
-                    if( [desc calculated] && ![AccountUtil isEmpty:[account objectForKey:[f value]]] &&
-                       ( [[account objectForKey:[f value]] rangeOfString:@"<img src"].location != NSNotFound || [[account objectForKey:[f value]] rangeOfString:@"<a href"].location != NSNotFound ) )
-                        continue;
-                    
-                    UIView *fieldView = [AccountUtil createViewForField:[f value] 
-                                                              withLabel:[item label] 
-                                                         withDictionary:account
-                                                             withTarget:target];
-                    
-                    sectionFields++;
-                    fieldView.tag = fieldCount;
-                    
-                    [fieldView setFrame:CGRectMake( 0, curY, fieldView.frame.size.width, fieldView.frame.size.height)];
-                    
-                    curY += fieldView.frame.size.height + FIELDSPACING;  
-                    
-                    [view addSubview:fieldView];                
-                    
-                    fieldCount++;
-                }
-            }
-            
-            // This is a little janky; we remove the section header view retroactively if there were no fields in it
-            if( [section useHeading] && sectionFields == 0 ) {
-                UIView *sectionView = [[view subviews] lastObject];
-                curY -= sectionView.frame.size.height + SECTIONSPACING;
-                [sectionView removeFromSuperview];
-                
-                continue;
-            }
-            
-            sectionCount++;
-            
-            curY += SECTIONSPACING;
+            if( !singleColumn )
+                curY += rowHeight + FIELDSPACING;
         }
+        
+        // This is a little janky; we remove the section header view retroactively if there were no fields in it
+        if( [section useHeading] && sectionFields == 0 ) {
+            UIView *sectionView = [[view subviews] lastObject];
+            curY -= sectionView.frame.size.height + SECTIONSPACING;
+            [sectionView removeFromSuperview];
+            
+            continue;
+        }
+        
+        sectionCount++;
+        
+        curY += SECTIONSPACING;
     }
     
     if( fieldCount == 0 ) {        
@@ -501,9 +560,9 @@ BOOL chatterEnabled = NO;
 
 #pragma mark - Account and sObject functions
 
-- (void) refreshFollowedAccounts:(NSString *)userId {
+- (void) refreshFollowedAccounts {
     NSString *qstring = [NSString stringWithFormat:@"select parentid from EntitySubscription where subscriberid='%@' and parent.type='Account' limit 1000",
-                         userId];
+                         [[[self client] currentUserInfo] userId]];
     ZKQueryResult *qr = nil;
     
     NSLog(@"SOQL %@", qstring);
@@ -528,53 +587,105 @@ BOOL chatterEnabled = NO;
     return [SimpleKeychain load:FollowedAccounts];
 }
 
+- (void) describeGlobal:(void (^)(void))completeBlock {
+    if( !globalDescribeObjects )
+        globalDescribeObjects = [[NSMutableDictionary dictionary] retain];
+    else
+        [globalDescribeObjects removeAllObjects];
+    
+    NSLog(@"DESCRIBE GLOBAL SOBJECTS");
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0), ^(void) {   
+        NSArray *describeResults = nil;
+        
+        @try {
+            describeResults = [[[AccountUtil sharedAccountUtil] client] describeGlobal];
+        } @catch( NSException *e ) {
+            [[AccountUtil sharedAccountUtil] receivedException:e];
+            
+            completeBlock();
+        }
+        
+        dispatch_async(dispatch_get_main_queue(), ^(void) {         
+            if( describeResults && [describeResults count] > 0 )            
+                for( ZKDescribeGlobalSObject *ob in describeResults )
+                    [globalDescribeObjects setObject:ob forKey:[ob name]];
+                
+            completeBlock();
+        });
+    });
+}
+
 - (BOOL) isChatterEnabled {
-    return chatterEnabled;
+    if( !globalDescribeObjects )
+        return NO;
+    
+    for( ZKDescribeGlobalSObject *ob in [globalDescribeObjects allValues] )
+        if( [ob feedEnabled] )
+            return YES;
+    
+    return NO;
 }
 
-- (void) setChatterEnabled:(BOOL) enabled {
-    chatterEnabled = enabled;
+- (BOOL) isObjectChatterEnabled:(NSString *)object {    
+    if( !globalDescribeObjects )
+        return NO;
+    
+    ZKDescribeGlobalSObject *ob = [globalDescribeObjects objectForKey:object];
+    
+    if( ob && [ob feedEnabled] )
+        return YES;
+    
+    return NO;
 }
 
-// used to determine if we're in an org that has record types. 
-// usually means EE+, or a PE org with the addon
-- (BOOL) hasRecordTypes {
-    return [[self getAccountDescribe] fieldWithName:@"RecordTypeId"] != nil;
+- (BOOL) isObjectRecordTypeEnabled:(NSString *)object {
+    if( !describeCache )
+        return NO;
+    
+    ZKDescribeSObject *desc = [describeCache objectForKey:object];
+    
+    if( desc && [desc fieldWithName:@"RecordTypeId"] )
+        return YES;
+    
+    return NO;
 }
 
-+ (NSString *) cityStateForAccount:(NSDictionary *)account {
++ (NSString *) cityStateForsObject:(NSDictionary *)sObject {
     NSString *ret = @"";
     
-    if( ![self isEmpty:[account objectForKey:@"City"]] ) {
-        ret = [account objectForKey:@"City"];
+    if( ![self isEmpty:[sObject objectForKey:@"City"]] ) {
+        ret = [sObject objectForKey:@"City"];
         
-        if( ![self isEmpty:[account objectForKey:@"State"]] )
-            ret = [ret stringByAppendingFormat:@", %@", [account objectForKey:@"State"]];
-    } else if( ![self isEmpty:[account objectForKey:@"BillingCity"]] ) {
-        ret = [account objectForKey:@"BillingCity"];
+        if( ![self isEmpty:[sObject objectForKey:@"State"]] )
+            ret = [ret stringByAppendingFormat:@", %@", [sObject objectForKey:@"State"]];
+    } else if( ![self isEmpty:[sObject objectForKey:@"BillingCity"]] ) {
+        ret = [sObject objectForKey:@"BillingCity"];
         
-        if( ![self isEmpty:[account objectForKey:@"BillingState"]] )
-            ret = [ret stringByAppendingFormat:@", %@", [account objectForKey:@"BillingState"]];
-    } else if( ![self isEmpty:[account objectForKey:@"ShippingCity"]] ) {
-        ret = [account objectForKey:@"ShippingCity"];
+        if( ![self isEmpty:[sObject objectForKey:@"BillingState"]] )
+            ret = [ret stringByAppendingFormat:@", %@", [sObject objectForKey:@"BillingState"]];
+    } else if( ![self isEmpty:[sObject objectForKey:@"ShippingCity"]] ) {
+        ret = [sObject objectForKey:@"ShippingCity"];
         
-        if( ![self isEmpty:[account objectForKey:@"ShippingState"]] )
-            ret = [ret stringByAppendingFormat:@", %@", [account objectForKey:@"ShippingState"]];
+        if( ![self isEmpty:[sObject objectForKey:@"ShippingState"]] )
+            ret = [ret stringByAppendingFormat:@", %@", [sObject objectForKey:@"ShippingState"]];
     }
         
     return ret;
 }
 
-+ (NSString *) addressForAccount:(NSDictionary *)account useBillingAddress:(BOOL)useBillingAddress {
++ (NSString *) addressForsObject:(NSDictionary *)sObject useBillingAddress:(BOOL)useBillingAddress {
     NSString *addressStr = @"";
     NSString *fieldPrefix = @"";
     
-    if( [[account allKeys] containsObject:@"Street"] )
+    if( [[sObject allKeys] containsObject:@"Street"] )
         fieldPrefix = @"";
     else if( useBillingAddress )
         fieldPrefix = @"Billing";
-    else
+    else if( [sObject objectForKey:@"ShippingStreet"] )
         fieldPrefix = @"Shipping";
+    else
+        fieldPrefix = @"Mailing";
     
     for( NSString *field in [NSArray arrayWithObjects:@"Street", @"City", @"State", @"PostalCode", @"Country", nil] ) {        
         if( ![addressStr isEqualToString:@""] && ( [field isEqualToString:@"City"] || [field isEqualToString:@"Country"] ) )
@@ -586,24 +697,46 @@ BOOL chatterEnabled = NO;
         
         NSString *fname = [fieldPrefix stringByAppendingString:field];
         
-        if( ![[self class] isEmpty:[account objectForKey:fname]] )
-            addressStr = [addressStr stringByAppendingString:[account objectForKey:fname]];
+        if( ![[self class] isEmpty:[sObject objectForKey:fname]] )
+            addressStr = [addressStr stringByAppendingString:[sObject objectForKey:fname]];
     }
          
     return addressStr;
 }
 
-// Given a field name and an sObject containing that field,
-// we parse and format the text in that field for display
 - (NSString *)textValueForField:(NSString *)fieldName withDictionary:(NSDictionary *)sObject {
     // Is this a related object? If so, pass the record over directly
-    ZKSObject *ob;
-    ZKDescribeField *fDescribe = [accountDescribe fieldWithName:fieldName];
+    ZKSObject *ob = nil;
+    NSString *sObjectName = nil;
     
+    if( ![AccountUtil isEmpty:[sObject objectForKey:@"sObjectType"]] )
+        sObjectName = [sObject objectForKey:@"sObjectType"];
+    else
+        sObjectName = [self sObjectFromRecordId:[sObject objectForKey:@"Id"]];
+    
+    // if this is a field on a related object, parse it out
+    if( [fieldName rangeOfString:@"."].location != NSNotFound ) {
+        NSArray *bits = [fieldName componentsSeparatedByString:@"."];
+        
+        ZKSObject *related = [sObject objectForKey:[bits objectAtIndex:0]];
+        
+        if( !related || [related isMemberOfClass:[NSNull class]] )
+            return @"";
+        
+        return [self textValueForField:[bits objectAtIndex:1] 
+                           withSObject:related 
+                             fDescribe:[self describeForField:[bits objectAtIndex:1] sObject:[related type]]];
+    }
+    
+    if( !sObjectName )
+        sObjectName = @"Account";
+    
+    ZKDescribeField *fDescribe = [self describeForField:fieldName sObject:sObjectName];
+        
     // if it's a reference, pass the related object directly
     if( [[fDescribe type] isEqualToString:@"reference"] ) {   
         id related = [sObject objectForKey:[fDescribe relationshipName]];
-        
+                
         // If this lookup field has just a string, it's coming from local database. Otherwise, pass the related object
         if( [related isKindOfClass:[ZKSObject class]] )
             ob = related;
@@ -612,7 +745,7 @@ BOOL chatterEnabled = NO;
         else
             return [sObject objectForKey:[fDescribe relationshipName]];
     } else {
-        ob = [[[ZKSObject alloc] initWithType:@"Account"] autorelease];
+        ob = [[[ZKSObject alloc] initWithType:sObjectName] autorelease];
         
         for( id key in [sObject allKeys] )
             [ob setFieldValue:[sObject objectForKey:key] field:key];
@@ -621,17 +754,15 @@ BOOL chatterEnabled = NO;
     if( !ob || [ob isMemberOfClass:[NSNull class]] )
         return @"";
     
-    return [self textValueForField:fieldName withSObject:ob];
+    return [self textValueForField:fieldName withSObject:ob fDescribe:fDescribe];
 }
 
-- (NSString *)textValueForField:(NSString *)fieldName withSObject:(ZKSObject *)sObject {
+- (NSString *)textValueForField:(NSString *)fieldName withSObject:(ZKSObject *)sObject fDescribe:(ZKDescribeField *)fDescribe {
     NSString *value = nil;
     NSNumberFormatter *nformatter = [[NSNumberFormatter alloc] init];  
     NSDateFormatter *dformatter = [[NSDateFormatter alloc] init];
     NSNumber *num;
-    
-    ZKDescribeField *fDescribe = [accountDescribe fieldWithName:fieldName];
-        
+            
     [dformatter setLocale:[NSLocale currentLocale]];
     [nformatter setLocale:[NSLocale currentLocale]];
         
@@ -654,7 +785,7 @@ BOOL chatterEnabled = NO;
     } else if( [[fDescribe type] isEqualToString:@"datetime"] ) {
         [dformatter setDateStyle:NSDateFormatterShortStyle];
         [dformatter setTimeStyle:NSDateFormatterShortStyle];
-        
+                
         value = [dformatter stringFromDate:[sObject dateTimeValue:fieldName]];
     } else if( [[fDescribe type] isEqualToString:@"percent"] ) {
         [nformatter setNumberStyle:NSNumberFormatterPercentStyle];
@@ -673,12 +804,9 @@ BOOL chatterEnabled = NO;
         
         num = [NSNumber numberWithDouble:[sObject doubleValue:fieldName]];
         value = [nformatter stringFromNumber:num];
-    } else if( [[fDescribe type] isEqualToString:@"reference"] ) {          
+    } else if( [[fDescribe type] isEqualToString:@"reference"] ) {         
         // Get the name of the related record
-        if( [[fDescribe referenceTo] containsObject:@"Case"] )
-            value = [sObject fieldValue:@"CaseNumber"];
-        else
-            value = [sObject fieldValue:@"Name"];
+        value = [sObject fieldValue:[self nameFieldForsObject:[sObject type]]];
     } else if( [[fDescribe type] isEqualToString:@"url"] ) {
         // make sure this URL has a protocol prefix
         NSString *urlLC = [[sObject fieldValue:fieldName] lowercaseString];
@@ -690,8 +818,8 @@ BOOL chatterEnabled = NO;
     } else
         value = [sObject fieldValue:fieldName];
     
-    if( [fieldName isEqualToString:@"Address"] || [fieldName isEqualToString:@"BillingStreet"] || [fieldName isEqualToString:@"ShippingStreet"] || [fieldName isEqualToString:@"Street"] )
-        value = [[self class] addressForAccount:[sObject fields] useBillingAddress:[fieldName isEqualToString:@"BillingStreet"]];
+    if( [fieldName isEqualToString:@"Address"] || [fieldName isEqualToString:@"BillingStreet"] || [fieldName isEqualToString:@"ShippingStreet"] || [fieldName isEqualToString:@"Street"] || [fieldName isEqualToString:@"MailingStreet"] )
+        value = [[self class] addressForsObject:[sObject fields] useBillingAddress:[fieldName isEqualToString:@"BillingStreet"]];
     
     [nformatter release];
     [dformatter release];
@@ -699,73 +827,178 @@ BOOL chatterEnabled = NO;
     return value;
 }
 
-- (ZKDescribeLayoutResult *) getAccountLayout {
-    if( !accountLayout ) {
-        [self startNetworkAction];
-        
-        @try {
-            ZKDescribeLayoutResult *layout = [client describeLayout:@"Account" recordTypeIds:nil];
-            
-            [self describeLayoutResult:layout error:nil context:nil];
-        } @catch( NSException *e ) {
-            [self endNetworkAction];
-            [self receivedException:e];
-            return nil;
-        }
-        
+- (ZKDescribeGlobalSObject *) describeGlobalsObject:(NSString *)sObject {
+    if( !globalDescribeObjects )
         return nil;
+    
+    if( [globalDescribeObjects objectForKey:sObject] )
+        return [globalDescribeObjects objectForKey:sObject];
+    
+    return nil;
+}
+
+- (void) describeLayoutForsObject:(NSString *)sObject completeBlock:(void (^)(ZKDescribeLayoutResult * layoutDescribe))completeBlock {
+    if( !layoutCache )
+        layoutCache = [[NSMutableDictionary dictionary] retain];
+    
+    if( !sObject )
+        return;
+    
+    if( [layoutCache objectForKey:sObject] ) {
+        completeBlock([layoutCache objectForKey:sObject]);
+        return;
     }
     
-    return accountLayout;
-}
-
-- (void) describeLayoutResult:(ZKDescribeLayoutResult *)result error:(NSError *)error context:(id)context {
-    [self endNetworkAction];
+    [self startNetworkAction];
     
-    if( error )
-        [self receivedAPIError:error];
-    else
-        accountLayout = [result retain];
+    NSLog(@"DESCRIBE LAYOUT: %@", sObject);
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0), ^(void) {   
+        ZKDescribeLayoutResult *result = nil;
+        
+        @try {
+            result = [[[AccountUtil sharedAccountUtil] client] describeLayout:sObject recordTypeIds:nil];
+        } @catch( NSException *e ) {
+            [[AccountUtil sharedAccountUtil] receivedException:e];
+            [self endNetworkAction];
+            
+            return;
+        }
+        
+        dispatch_async(dispatch_get_main_queue(), ^(void) {         
+            [self endNetworkAction];
+            
+            if( !result )
+                return;
+            
+            [layoutCache setObject:result forKey:sObject];
+            
+            completeBlock(result);
+        });
+    });
+    
+    return;
 }
 
-// Given a record type, return the proper page layout for this record
-- (ZKDescribeLayout *)layoutForRecordTypeId:(NSString *)recordTypeId {
-    if( !accountLayout || [[accountLayout layouts] count] == 0 )
+- (NSString *) sObjectFromRecordId:(NSString *)recordId {
+    if( !recordId || [recordId length] < 15 )
+        return nil; // local record
+    
+    NSString *prefix = [recordId substringToIndex:3];
+    
+    for( NSString *sObject in [globalDescribeObjects allKeys] ) {
+        ZKDescribeGlobalSObject *ob = [globalDescribeObjects objectForKey:sObject];
+        
+        if( ob && [ob queryable] && [ob retrieveable] && ![ob deprecatedAndHidden] && [[ob keyPrefix] isEqualToString:prefix] )
+            return sObject;
+    }
+    
+    return nil;
+}
+
+- (NSString *) sObjectFromLayoutId:(NSString *)layoutId {
+    for( NSString *sObject in [layoutCache allKeys] )
+        for( ZKDescribeLayout *layout in [[layoutCache objectForKey:sObject] layouts] )
+            if( [[layout Id] isEqualToString:layoutId] )
+                return sObject;
+
+    return nil;
+}
+
+- (NSString *) sObjectFromRecordTypeId:(NSString *)recordTypeId {
+    for( NSString *sObject in [layoutCache allKeys] )
+        for( ZKRecordTypeMapping *mapping in [[layoutCache objectForKey:sObject] recordTypeMappings] )
+            if( [[mapping recordTypeId] isEqualToString:recordTypeId] )
+                return sObject;
+    
+    return nil;
+}
+
+- (ZKDescribeLayout *) layoutForRecord:(NSDictionary *)record {
+    if( !layoutCache || !record || ![record objectForKey:@"Id"] )
         return nil;
     
-    if( !recordTypeId )
-        return [[accountLayout layouts] objectAtIndex:0];
-    
+    ZKDescribeLayoutResult *result = [layoutCache objectForKey:[self sObjectFromRecordId:[record objectForKey:@"Id"]]];
     NSString *layoutId = nil;
     
-    for( ZKRecordTypeMapping *rt in [accountLayout recordTypeMappings] )
-        if( [[rt recordTypeId] isEqualToString:recordTypeId] ) {
-            layoutId = [rt layoutId];
-            break;
+    if( result ) {
+        // First attempt to pick the proper layout for this record type, if there is a record type
+        if( [record objectForKey:@"RecordTypeId"] ) {
+            for( ZKRecordTypeMapping *rt in [result recordTypeMappings] )
+                if( [rt available] && [[rt recordTypeId] isEqualToString:[record objectForKey:@"RecordTypeId"]] )
+                    layoutId = [rt layoutId];
         }
+        
+        // Next attempt to pick the default layout for this object
+        if( !layoutId )
+            for( ZKRecordTypeMapping *rt in [result recordTypeMappings] )
+                if( [rt defaultRecordTypeMapping] && [rt available] ) {
+                    layoutId = [rt layoutId];
+                    break;
+                }
+        
+        // If all else fails, just choose the first available layout
+        if( !layoutId )
+            layoutId = [[[result layouts] objectAtIndex:0] Id];
+    }
     
-    for( ZKDescribeLayout *layout in [accountLayout layouts] )
-        if( [[layout Id] isEqualToString:layoutId] )
-            return layout;
+    return [self layoutWithLayoutId:layoutId];
+}
+
+- (ZKDescribeLayout *) layoutWithLayoutId:(NSString *)layoutId {
+    if( !layoutCache || [layoutCache count] == 0 || !layoutId )
+        return nil;
     
-    return [[accountLayout layouts] objectAtIndex:0];
+    for( ZKDescribeLayoutResult *result in [layoutCache allValues] )
+        for( ZKDescribeLayout *layout in [result layouts] )
+            if( [[layout Id] isEqualToString:layoutId] )
+                return layout;
+    
+    return nil;
+}
+
+- (NSString *)nameFieldForsObject:(NSString *)sObject {
+    if( !describeCache || !sObject || ![describeCache objectForKey:sObject] )
+        return @"Name";
+    
+    for( ZKDescribeField *field in [[describeCache objectForKey:sObject] fields] )
+        if( [field nameField] || [[[field name] lowercaseString] isEqualToString:@"name"] )
+            return [field name];
+    
+    return @"Name";
+}
+
+- (NSArray *) relatedsObjectsOnsObject:(NSString *)sObject {
+    NSMutableArray *ret = [NSMutableArray array];
+    
+    if( !describeCache || !sObject || ![describeCache objectForKey:sObject] )
+        return ret;
+    
+    for( ZKDescribeField *field in [[describeCache objectForKey:sObject] fields] ) {
+        // Tasks can be related to basically anything and we don't really need to describe every
+        // sObject just to display them
+        if( [sObject isEqualToString:@"Task"] &&
+            [[NSArray arrayWithObjects:@"WhoId", @"WhatId", nil] containsObject:[field name]] )
+            continue;
+        
+        if( [[field type] isEqualToString:@"reference"] )
+            for( NSString *relatedTo in [field referenceTo] )
+                [ret addObject:relatedTo];
+    }
+    
+    return [[NSSet setWithArray:ret] allObjects];
 }
 
 // Returns a list of field names that appear in a given record layout, for use in constructing a query
 - (NSArray *)fieldListForLayoutId:(NSString *)layoutId {
-    NSArray *ret = [NSArray arrayWithObject:@"id"];
+    NSMutableArray *ret = [NSMutableArray arrayWithObject:@"id"];
     
-    ZKDescribeLayout *layout = nil;
-    
-    for( ZKDescribeLayout *l in [accountLayout layouts] )
-        if( [[l Id] isEqualToString:layoutId] ) {
-            layout = l;
-            break;
-        }
+    ZKDescribeLayout *layout = [self layoutWithLayoutId:layoutId];
+    NSString *sObject = [self sObjectFromLayoutId:layoutId];
     
     if( !layout ) 
         return ret;
-    
+        
     // 1. Loop through all sections in this page layout
     for( ZKDescribeLayoutSection *section in [layout detailLayoutSections] ) {
         
@@ -786,85 +1019,144 @@ BOOL chatterEnabled = NO;
                     NSString *fname = [dlc value];
                     
                     // If this field is a lookup relationship, we will attempt to get the name of the related object in addition to its ID
-                    ZKDescribeField *f = [accountDescribe fieldWithName:fname];
+                    ZKDescribeField *f = [self describeForField:fname sObject:[self sObjectFromLayoutId:layoutId]];
                     
-                    if( [[f type] isEqualToString:@"reference"] ) {
-                        // Attempt to get the name of the related object
-                        if( [[f referenceTo] containsObject:@"Case"] )
-                            ret = [ret arrayByAddingObject:[NSString stringWithFormat:@"%@.casenumber", [f relationshipName]]];
-                        else
-                            ret = [ret arrayByAddingObject:[NSString stringWithFormat:@"%@.name", [f relationshipName]]];
-                        
-                        // And if this is a lookup to a user, attempt to get that user's small chatter photo
-                        // and a few other fields on them for their user popover
-                        if( [[f referenceTo] containsObject:@"User"] ) {
-                            NSArray *newFields = [NSArray arrayWithObjects:@"email", @"title", @"phone", @"mobilephone", @"city", @"state", @"department", nil];
-                            
-                            if( [[AccountUtil sharedAccountUtil] isChatterEnabled] )
-                                newFields = [newFields arrayByAddingObjectsFromArray:[NSArray arrayWithObjects:@"smallphotourl", @"fullphotourl", @"currentstatus", @"aboutme", nil]];
-                            
-                            for( NSString *s in newFields )
-                                ret = [ret arrayByAddingObject:[NSString stringWithFormat:@"%@.%@", [f relationshipName], s]];
-                        }
+                    if( [f relationshipName] && [[f type] isEqualToString:@"reference"] ) {
+                        // Special handling for the 'What' and 'Who' fields on Task, which can refer to just about anything                        
+                        if( [[f name] isEqualToString:@"WhatId"] )
+                            [ret addObject:@"What.Name"];
+                        else if( [[f name] isEqualToString:@"WhoId"] )
+                            [ret addObject:@"Who.Name"];
+                        else if( [[f referenceTo] count] == 1 && [[f referenceTo] containsObject:@"User"] ) {
+                            // Special handling for Task, as it uses the Name field for owner (sigh)
+                            if( [sObject isEqualToString:@"Task"] && [[f name] isEqualToString:@"OwnerId"] )
+                                [ret addObject:[NSString stringWithFormat:@"%@.%@", [f relationshipName], @"Name"]];
+                            else {
+                                NSArray *newFields = [NSArray arrayWithObjects:@"name", @"email", @"title", @"phone", @"mobilephone", @"city", @"state", @"department", nil];
+                                
+                                if( [[AccountUtil sharedAccountUtil] isChatterEnabled] )
+                                    newFields = [newFields arrayByAddingObjectsFromArray:[NSArray arrayWithObjects:@"smallphotourl", @"fullphotourl", @"currentstatus", @"aboutme", nil]];
+                                
+                                for( NSString *s in newFields ) 
+                                    [ret addObject:[NSString stringWithFormat:@"%@.%@", [f relationshipName], s]];
+                            }
+                        } else
+                            for( NSString *refTo in [f referenceTo] ) {
+                                [ret addObject:[NSString stringWithFormat:@"%@.%@",
+                                                                [f relationshipName],
+                                                                [self nameFieldForsObject:refTo]]];
+                                
+                                if( [self isObjectRecordTypeEnabled:refTo] )
+                                    [ret addObject:[NSString stringWithFormat:@"%@.%@",
+                                                    [f relationshipName],
+                                                    @"RecordTypeId"]];
+                            }
                     }
                     
-                    if( ![ret containsObject:fname] )
-                        ret = [ret arrayByAddingObject:fname];
+                    [ret addObject:fname];
                 }     
             }
         }
     }
     
-    // Ensure that header fields are included in the query
-    for( NSString *headerField in [NSArray arrayWithObjects:@"Name", @"Phone", @"Industry", @"Website", nil] ) {
-        ZKDescribeField *desc = [[[AccountUtil sharedAccountUtil] getAccountDescribe] fieldWithName:headerField];
-        
-        // access check for this field. even though it's a standard field, some users may not have access
-        if( desc && ![ret containsObject:headerField] )
-            ret = [ret arrayByAddingObject:headerField];
-    }
+    // Ensure that header fields are included in the query for accounts
+    if( [sObject isEqualToString:@"Account"] ) 
+        for( NSString *headerField in [NSArray arrayWithObjects:@"Name", @"Phone", @"Industry", @"Website", nil] ) {
+            ZKDescribeField *desc = [[AccountUtil sharedAccountUtil] describeForField:headerField sObject:@"Account"];
+            
+            // access check for this field. even though it's a standard field, some users may not have access
+            if( desc && ![ret containsObject:headerField] )
+                [ret addObject:headerField];
+        }
     
     // This is a little silly, but page layouts don't seem to include created/modified dates if they also include
     // the created/modified user
     if( [ret containsObject:@"LastModifiedById"] && ![ret containsObject:@"LastModifiedDate"] )
-        ret = [ret arrayByAddingObject:@"LastModifiedDate"];
+        [ret addObject:@"LastModifiedDate"];
     
     if( [ret containsObject:@"CreatedById"] && ![ret containsObject:@"CreatedDate"] )
-        ret = [ret arrayByAddingObject:@"CreatedDate"];
+        [ret addObject:@"CreatedDate"];
     
     // Also, some page layouts don't include the record name so we must be sure to include it
-    if( ![ret containsObject:@"Name"] )
-        ret = [ret arrayByAddingObject:@"Name"];
+    if( ![ret containsObject:[self nameFieldForsObject:sObject]] )
+        [ret addObject:[self nameFieldForsObject:sObject]];
+    
+    NSArray *allFields = [[NSSet setWithArray:ret] allObjects];
+    [ret removeAllObjects];
+    int counter = 0;
+    
+    for( int x = 0; x < [allFields count]; x++ ) {
+        if( counter >= SOQLMAXLENGTH - 50 )
+            break;
+        
+        [ret addObject:[allFields objectAtIndex:x]];
+        
+        counter += [[allFields objectAtIndex:x] length] + ( counter > 0 ? 1 : 0 );
+    }
     
     return ret;
 }
 
-- (ZKDescribeSObject *)getAccountDescribe {
-    if( !accountDescribe ) {
-        [self startNetworkAction];
-        
-        @try {
-            ZKDescribeSObject *describe = [client describeSObject:@"Account"];
-                     
-            [self describeAccountResult:describe error:nil context:nil];
-        } @catch( NSException *e ) {
-            [self endNetworkAction];
-            [self receivedException:e];
-            
-            return nil;
-        }
-    }
+- (ZKDescribeSObject *) describeSObjectFromCache:(NSString *)sObject {
+    if( !describeCache || ![describeCache objectForKey:sObject] )
+        return nil;
     
-    return accountDescribe;
+    return [describeCache objectForKey:sObject];
 }
 
-- (void)describeAccountResult:(ZKDescribeSObject *)result error:(NSError *)error context:(id)context {
-    [self endNetworkAction];
+- (void) describesObject:(NSString *)sObject completeBlock:(void (^)(ZKDescribeSObject *))completeBlock {
+    if( !describeCache )
+        describeCache = [[NSMutableDictionary dictionary] retain];
     
-    if( error )
-        [self receivedAPIError:error];
-    else if( result )
-        accountDescribe = [result retain];
+    if( !sObject )
+        return;
+    
+    if( [describeCache objectForKey:sObject] ) {
+        completeBlock([describeCache objectForKey:sObject]);
+        
+        return;
+    }
+    
+    [self startNetworkAction];
+    
+    NSLog(@"DESCRIBE SOBJECT: %@", sObject);
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0), ^(void) {   
+        ZKDescribeSObject *describe = nil;
+        
+        @try {
+            describe = [[[AccountUtil sharedAccountUtil] client] describeSObject:sObject];
+        } @catch( NSException *e ) {
+            [[AccountUtil sharedAccountUtil] receivedException:e];
+            [self endNetworkAction];
+            
+            return;
+        }
+        
+        dispatch_async(dispatch_get_main_queue(), ^(void) {         
+            [self endNetworkAction];
+            
+            if( describe ) {         
+                [describeCache setObject:describe forKey:sObject];
+                completeBlock( describe );
+            } else
+                completeBlock( nil );    
+        });
+    });
+    
+    return;
+}
+
+- (ZKDescribeField *) describeForField:(NSString *)field sObject:(NSString *)sObject {
+    if( !describeCache )
+        return nil;
+    
+    ZKDescribeSObject *describe = [describeCache objectForKey:sObject];
+    
+    if( describe )
+        return [describe fieldWithName:field];
+    
+    return nil;
 }
 
 - (void) loadUserInfo {
@@ -1005,6 +1297,7 @@ BOOL chatterEnabled = NO;
 
 // Takes an array of dictionaries or sobjects and alphabetizes them into a dictionary
 // key is the first letter of the account name, value is an array of accounts starting with that letter
+// in alphabetical order ascending - assumes results were passed to us in alphabetical order
 + (NSDictionary *) dictionaryFromAccountArray:(NSArray *)results {
     if( !results )
         return nil;
@@ -1039,6 +1332,58 @@ BOOL chatterEnabled = NO;
     return [ret autorelease];
 }
 
+// Given a dictionary defined as in dictionaryFromAccountArray, add some new accounts to it
+// while maintaining alphabetical order by name
++ (NSDictionary *) dictionaryByAddingAccounts:(NSArray *)accounts toDictionary:(NSDictionary *)allAccounts {
+    NSMutableDictionary *newDictionary = [NSMutableDictionary dictionaryWithDictionary:allAccounts];
+    
+    if( !accounts || [accounts count] == 0 )
+        return newDictionary;
+    
+    for( id a in accounts ) {
+        NSDictionary *newAccount = nil;
+        
+        if( [a isMemberOfClass:[ZKSObject class]] )
+            newAccount = [a fields];
+        else
+            newAccount = a;
+        
+        if( [self isEmpty:[newAccount objectForKey:@"Name"]] )
+            continue;
+        
+        NSString *index = [[[newAccount objectForKey:@"Name"] substringToIndex:1] uppercaseString];
+        
+        if( ![newDictionary objectForKey:index] )
+            [newDictionary setObject:[NSArray array] forKey:index];
+        
+        NSMutableArray *indexAccounts = [NSMutableArray arrayWithArray:[newDictionary objectForKey:index]];
+        
+        if( [indexAccounts count] == 0 )
+            [indexAccounts addObject:newAccount];
+        else {
+            BOOL added = NO;
+            
+            for( int x = 0; x < [indexAccounts count]; x++ ) {
+                NSDictionary *indexAccount = [indexAccounts objectAtIndex:x];
+                
+                if( [[newAccount objectForKey:@"Name"] compare:[indexAccount objectForKey:@"Name"]
+                                                    options:NSCaseInsensitiveSearch] != NSOrderedDescending ) {
+                    [indexAccounts insertObject:newAccount atIndex:x];
+                    added = YES;
+                    break;
+                }
+            }
+            
+            if( !added )
+                [indexAccounts addObject:newAccount];
+        }
+        
+        [newDictionary setObject:indexAccounts forKey:index];
+    }
+    
+    return newDictionary;
+}
+
 // Given an index path, get an account from a dictionary defined as in dictionaryFromAccountArray
 + (NSDictionary *) accountFromIndexPath:(NSIndexPath *)ip accountDictionary:(NSDictionary *)allAccounts {
     if( !ip || !allAccounts )
@@ -1046,40 +1391,13 @@ BOOL chatterEnabled = NO;
     
     NSArray *sortedKeys = [[self class] sortArray:[allAccounts allKeys]];
     NSString *index = [sortedKeys objectAtIndex:[ip section]];
-    NSArray *unsortedAccounts = [allAccounts objectForKey:index];
-    NSArray *accountNames = [NSArray array];
-    NSMutableDictionary *thisAccount = nil;
+    NSArray *indexedAccounts = [allAccounts objectForKey:index];
     
-    for( NSDictionary *account in unsortedAccounts )
-        if( account && ![AccountUtil isEmpty:[account objectForKey:@"Name"]] )
-            accountNames = [accountNames arrayByAddingObject:[account objectForKey:@"Name"]];
-    
-    if( [accountNames count] == 0 )
-        return nil;
-    
-    accountNames = [self sortArray:accountNames];
-    
-    int c = 0;
-    
-    for( NSDictionary *account in unsortedAccounts ) {
-        if( [[account objectForKey:@"Name"] isEqualToString:[accountNames objectAtIndex:[ip row]]] ) {
-            thisAccount = [NSMutableDictionary dictionaryWithDictionary:account];
-            break;
-        }
-        
-        c++;
-    }
-    
-    if( !thisAccount )
-        return nil;
-    
-    [thisAccount setValue:[NSNumber numberWithInt:c] forKey:@"tag"];
-    
-    return thisAccount;
+    return [indexedAccounts objectAtIndex:ip.row];
 }
 
 // Given an account, get an index path for it from a dictionary defined as in dictionaryFromAccountArray
-+ (NSIndexPath *) indexPathForAccountDictionary:(NSDictionary *)account accountDictionary:(NSDictionary *)allAccounts {
++ (NSIndexPath *) indexPathForAccountDictionary:(NSDictionary *)account allAccountDictionary:(NSDictionary *)allAccounts {
     int section = 0, row = 0;
     
     if( !account || !allAccounts )
@@ -1087,43 +1405,45 @@ BOOL chatterEnabled = NO;
     
     NSString *index = nil; 
     
-    if( ![[NSCharacterSet letterCharacterSet] characterIsMember:[[account objectForKey:@"Name"] characterAtIndex:0]] )
+    if( ![account objectForKey:@"Name"] )
+        index = nil;
+    else if( ![[NSCharacterSet letterCharacterSet] characterIsMember:[[account objectForKey:@"Name"] characterAtIndex:0]] )
         index = @"#";
     else
         index = [[[account objectForKey:@"Name"] substringToIndex:1] uppercaseString];
-    
-    NSArray *accounts = [allAccounts objectForKey:index];
-    NSArray *keys = [self sortArray:[allAccounts allKeys]];
-    NSArray *accountNames = [NSArray array];
         
-    for( int x = 0; x < [keys count]; x++ )
-        switch( [index compare:[keys objectAtIndex:x] options:NSCaseInsensitiveSearch] ) {
-            case NSOrderedDescending:
-                section++;
-                break;
-            default:
-                break;
-        }            
-
-    for( NSDictionary *acc in accounts )
-        if( acc && ![AccountUtil isEmpty:[acc objectForKey:@"Name"]] )
-            accountNames = [accountNames arrayByAddingObject:[acc objectForKey:@"Name"]];
-    
-    if( [accountNames count] == 0 )
-        return [NSIndexPath indexPathForRow:0 inSection:section];
-    
-    accountNames = [self sortArray:accountNames];
-    
-    for( int x = 0; x < [accountNames count]; x++ )
-        switch( [[account objectForKey:@"Name"] compare:[accountNames objectAtIndex:x] options:NSCaseInsensitiveSearch] ) {
-            case NSOrderedDescending: 
-                row++;
-                break;
-            default:
-                break;
+    NSArray *keys = [self sortArray:[allAccounts allKeys]];
+        
+    if( !index ) {
+        for( NSString *key in keys ) {
+            for( NSDictionary *a in [allAccounts objectForKey:key] ) {                
+                if( [[a objectForKey:@"Id"] isEqualToString:[account objectForKey:@"Id"]] )
+                    return [NSIndexPath indexPathForRow:row inSection:section];
+                else
+                    row++;
+            }
+            
+            section++;
+            row = 0;
         }
-
-    return [NSIndexPath indexPathForRow:row inSection:section];
+    } else {
+        NSArray *accounts = [allAccounts objectForKey:index];
+        
+        for( NSString *key in keys )
+            if( [key isEqualToString:index] )
+                break;
+            else
+                section++;
+        
+        for( NSDictionary *a in accounts ) {
+            if( [[a objectForKey:@"Id"] isEqualToString:[account objectForKey:@"Id"]] )
+                return [NSIndexPath indexPathForRow:row inSection:section];
+            
+            row++;
+        }
+    }
+    
+    return nil;    
 }
 
 + (BOOL) isEmpty:(id) thing {
@@ -1166,6 +1486,63 @@ BOOL chatterEnabled = NO;
     UIGraphicsEndImageContext();
     
     return newImage;
+}
+
++ (NSString *) SOQLDatetimeFromDate:(NSDate *)date {
+    if( !date )
+        date = [NSDate dateWithTimeIntervalSinceNow:0];
+    
+    // 2011-01-24T17:34:14.000Z
+    
+    NSDateFormatter *dformatter = [[NSDateFormatter alloc] init];
+    [dformatter setLocale:[NSLocale currentLocale]];
+    [dformatter setDateFormat:@"yyyy'-'MM'-'dd'T'HH':'mm':'ss'.000Z'"];
+    
+    NSString *format = [dformatter stringFromDate:date];
+    [dformatter release];
+        
+    return format;
+}
+
++ (NSDate *) dateFromSOQLDatetime:(NSString *)datetime {
+    // 2011-01-24T17:34:14.000Z
+    NSDate *date;
+    
+    if( !datetime )
+        return [NSDate dateWithTimeIntervalSinceNow:0];
+    
+    datetime = [datetime stringByReplacingOccurrencesOfString:@".000Z" withString:@""];
+    datetime = [datetime stringByReplacingOccurrencesOfString:@"T" withString:@" "];
+    
+    NSDateFormatter *dformatter = [[NSDateFormatter alloc] init];
+    [dformatter setLocale:[NSLocale currentLocale]];
+    [dformatter setDateFormat:@"yyyy-MM-dd HH:mm:ss"];
+    
+    date = [dformatter dateFromString:datetime];
+    [dformatter release];
+    
+    return date;
+}
+
++ (NSArray *) filterRecords:(NSArray *)records dateField:(NSString *)dateField withDate:(NSDate *)date createdAfter:(BOOL)createdAfter {
+    if( !records || !dateField )
+        return nil;
+    
+    if( !date || [records count] == 0 )
+        return records;
+    
+    NSMutableArray *ret = [NSMutableArray arrayWithCapacity:[records count]];
+    
+    for( ZKSObject *record in records ) {
+        NSComparisonResult result = [date compare:[AccountUtil dateFromSOQLDatetime:[record fieldValue:dateField]]];
+        
+        if( createdAfter && result == NSOrderedAscending )
+            [ret addObject:record];
+        else if( !createdAfter && result == NSOrderedDescending )
+            [ret addObject:record];
+    }
+    
+    return ret;
 }
 
 // Sort an array alphabetically
@@ -1368,6 +1745,44 @@ finish:
     return result;
 }
 
++ (NSString *) stringByAppendingSessionIdToImagesInHTMLString:(NSString *)htmlstring sessionId:(NSString *)sessionId {
+    // Quick exit if there are no images    
+    if( [htmlstring rangeOfString:@"<img" options:NSCaseInsensitiveSearch].location == NSNotFound ||
+        [htmlstring rangeOfString:@"src=" options:NSCaseInsensitiveSearch].location == NSNotFound )
+        return htmlstring;
+        
+    NSMutableString *result = [NSMutableString string];
+    NSScanner *scanner = [NSScanner scannerWithString:htmlstring];
+    [scanner setCharactersToBeSkipped:nil];
+        
+    do {
+        NSString *nonEntityString;
+        if ([scanner scanUpToString:@"<img" intoString:&nonEntityString]) {
+            [result appendString:nonEntityString];
+                        
+            // Scan to the URL marker
+            if([scanner scanUpToString:@"src=\"" intoString:&nonEntityString]) {
+                [result appendString:nonEntityString];
+                            
+                if([scanner scanUpToString:@"\"" intoString:&nonEntityString])
+                    [result appendString:nonEntityString];
+                                
+                NSString *urlstring;
+                                
+                // insert session ID
+                if([scanner scanUpToString:@"\">" intoString:&urlstring] &&
+                   [urlstring rangeOfString:@"content.force.com" options:NSCaseInsensitiveSearch].location != NSNotFound )
+                    [result appendFormat:@"%@&oauth_token=%@",
+                        urlstring, sessionId];
+                else if( urlstring )
+                    [result appendString:urlstring];   
+            }
+        }
+    } while( ![scanner isAtEnd] );
+    
+    return result;
+}
+
 + (NSString *)getIPAddress {
     NSString *address = @"error";
     struct ifaddrs *interfaces = NULL;
@@ -1492,21 +1907,6 @@ finish:
         i = [NSNumber numberWithInt:0];
     
     return i;        
-}
-
-- (NSDictionary *) convertFieldNamesToLabels:(NSDictionary *)account {
-    if( !accountDescribe )
-        return account;
-    
-    NSMutableDictionary *ret = [NSMutableDictionary dictionaryWithCapacity:[account count]];
-    
-    for( NSString *key in [account allKeys] )
-        if( ![accountDescribe fieldWithName:key] || [key isEqualToString:@"Name"] || [key isEqualToString:@"Id"] )
-            [ret setObject:[account objectForKey:key] forKey:key];
-        else
-            [ret setObject:[account objectForKey:key] forKey:[[accountDescribe fieldWithName:key] label]];
-    
-    return [NSDictionary dictionaryWithObjects:[ret allValues] forKeys:[ret allKeys]];
 }
 
 /*

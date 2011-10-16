@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -33,7 +33,7 @@
 
 @interface RecordNewsViewController : FlyingWindowController <UITableViewDelegate, UITableViewDataSource> {
     NSString *newsSearchTerm;
-    NSArray *jsonArticles;
+    NSMutableArray *jsonArticles;
     NSMutableArray *imageRequests;
     BOOL isLoadingNews;
     int resultStart;
@@ -46,8 +46,7 @@
 #define NEWS_ENDPOINT @"https://ajax.googleapis.com/ajax/services/search/news?v=1.0"
 #define DEFAULT_HEIGHT 150
 
-@property (nonatomic, assign) UIButton *noNewsButton;
-
+@property (nonatomic, retain) UIView *noNewsView;
 @property (nonatomic, retain) PullRefreshTableViewController *newsTableViewController;
 @property (nonatomic, retain) NSArray* jsonArticles;
 @property (nonatomic, retain) PRPConnection *newsConnection;
@@ -59,7 +58,7 @@
 
 - (id) initWithFrame:(CGRect)frame;
 
-- (void) setNewsSearchTerm:(NSString *)st;
+- (void) setSearchTerm:(NSString *)st;
 - (void) refresh:(BOOL) resetRefresh;
 - (void) stopLoading;
 - (void) fetchImages;
@@ -69,5 +68,7 @@
 - (void) addTableView;
 - (void) removeTableView;
 
+- (void) toggleRelatedLists;
+- (void) delayedLaunchRelatedLists;
 
 @end

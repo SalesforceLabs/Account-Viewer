@@ -1,3 +1,28 @@
+/* v1.1 */
+"About Account Viewer" = "Acerca de Account Viewer";
+"Account News" = "Account News";
+"Account, Group, or User" = "Cuenta, grupo o usuario";
+"Ask the Community" = "Pregunte a la comunidad";
+"User or Group" = "Usuario o grupo";
+"Body" = "Cuerpo";
+"Call with FaceTime" = "Llamar con FaceTime";
+"Call with Skype" = "Llamar con Skype";
+"Chatter Groups" = "Grupos de Chatter";
+"EULA" = "EULA";
+"FAQ" = "Preguntas más frecuentes";
+"Help" = "Ayuda";
+"Link" = "Enlace";
+"New in v1.1: Related Lists! View full record detail for any standard or custom related object." = "Novedades de la versión 1.1: Listas relacionadas: Vea los detalles completos de registro de cualquier objeto estándar o personalizado.";
+"New in v1.1: Share any article or link to Chatter!" = "Novedades de la versión 1.1: Comparta cualquier artículo o enlace de Chatter.";
+"No Results" = "No hay resultados";
+"Post" = "Publicar";
+"Post to" = "Publicar en";
+"Posting..." = "Publicando...";
+"Related Lists" = "Listas relacionadas";
+"Share on Chatter" = "Compartir en Chatter";
+"shared a link." = "compartió un enlace.";
+"Title" = "Título";
+
 /* Account
  Account object name
  Account singular */
@@ -195,7 +220,7 @@
 "No Local Accounts" = "Ninguna cuenta local";
 
 /* No news label */
-"No news — Tap to refresh" = "Ninguna noticia. Pulse para actualizar";
+"No News — Tap to Refresh" = "Ninguna noticia\nPulse para actualizar";
 
 /* OK */
 "OK" = "Aceptar";

@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -48,6 +48,7 @@
 #define emptyFieldsKey      @"show_empty_fields"
 
 @interface RootViewController : UIViewController <MGSplitViewControllerDelegate, IASKSettingsDelegate, UIPopoverControllerDelegate> {
+    int metadataComplete;
 }
 
 @property (nonatomic, retain) ZKSforceClient *client;
@@ -69,14 +70,20 @@
 - (void) switchSubNavView:(int) selectedIndex;
 - (void) removeSubNavControllers;
 - (void) allSubNavSelectAccountWithId:(NSString *)accountId;
+- (SubNavViewController *) currentSubNavViewController;
+
+// Loading modal
+- (void) showLoadingModal;
+- (void) hideLoadingModal;
 
 // Login
-- (void) hideLogin;
+- (void) hideLoginAnimated:(BOOL)animated;
 - (void) loginOAuth:(OAuthViewController *)controller error:(NSError *)error;
 - (void) logInOrOut:(id)sender;
 - (BOOL) isLoggedIn;
 - (NSString *) loginAction;
 - (void) appDidLogin;
+- (void) appDidCompleteLoginMetadataOperation;
 - (void) loginResult:(ZKLoginResult *)result error:(NSError *)error;
 - (IBAction) showSettings:(id)sender;
 - (void) doLogout;

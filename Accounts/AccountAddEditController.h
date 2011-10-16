@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -27,16 +27,15 @@
 // View controller and delegate to handle adding and editing local accounts
 
 #import <UIKit/UIKit.h>
+#import "TextCell.h"
 
 @protocol AccountAddEditControllerDelegate;
 
-@interface AccountAddEditController : UITableViewController {
-    NSMutableDictionary *fields;
-    NSMutableDictionary *textFields;
-}
+@interface AccountAddEditController : UITableViewController <TextCellDelegate> {}
 
 @property (nonatomic, retain) UIBarButtonItem *saveButton;
 @property (nonatomic, retain) NSMutableDictionary *fields;
+
 @property (nonatomic, assign) id <AccountAddEditControllerDelegate> delegate;
 
 - (id) init;
@@ -44,7 +43,6 @@
 - (void) dealloc;
 - (void) save;
 - (void) cancel;
-- (void) textFieldValueChanged:(UITableViewCell *)cell field:(UITextField *)textField;
 
 - (BOOL) isNewAccount;
 

@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -34,31 +34,49 @@
 #import <QuartzCore/QuartzCore.h>
 #import "DSActivityView.h"
 #import "PRPAlertView.h"
+#import "ListOfRelatedListsViewController.h"
 
 @implementation RecordNewsViewController
 
-@synthesize newsTableViewController, newsConnection, jsonArticles, imageRequests, noNewsButton, newsSearchTerm, sourceLabel;
+@synthesize newsTableViewController, newsConnection, jsonArticles, imageRequests, noNewsView, newsSearchTerm, sourceLabel;
 
 #pragma mark - init, layout, setup
 
 - (id) initWithFrame:(CGRect)frame {
-    if((self = [super initWithFrame:frame])) {          
-        self.noNewsButton = [UIButton buttonWithType:UIButtonTypeCustom];
-        noNewsButton.titleLabel.numberOfLines = 0;
-        noNewsButton.titleLabel.lineBreakMode = UILineBreakModeWordWrap;
-        [noNewsButton setTitleColor:UIColorFromRGB(0x444444) forState:UIControlStateNormal];
-        noNewsButton.titleLabel.textAlignment = UITextAlignmentCenter;
-        [noNewsButton.titleLabel setFont:[UIFont fontWithName:@"Verdana" size:18]];
-        [noNewsButton setTitle:NSLocalizedString(@"No news — Tap to refresh", @"No news label") forState:UIControlStateNormal];
-        noNewsButton.backgroundColor = [UIColor clearColor];
-        [noNewsButton addTarget:self action:@selector(refresh:) forControlEvents:UIControlEventTouchUpInside];
-        [noNewsButton setFrame:CGRectMake( 10, ( self.view.frame.size.height / 2.0f ) - 20, self.view.frame.size.width - 20, 30)];
+    if((self = [super initWithFrame:frame])) {   
+        self.view.backgroundColor = [UIColor colorWithPatternImage:[UIImage imageNamed:@"panelBG.png"]];
         
-        noNewsButton.layer.cornerRadius = 6.0f;
-        noNewsButton.layer.borderWidth = 2.0f;
-        noNewsButton.layer.borderColor = [UIColor darkGrayColor].CGColor;
-        
-        [self.view addSubview:noNewsButton];
+        if( !self.noNewsView ) {
+            self.noNewsView = [[[UIView alloc] initWithFrame:CGRectMake( 0, 0, frame.size.width, 300 )] autorelease];
+            self.noNewsView.backgroundColor = [UIColor clearColor];
+            self.noNewsView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
+            
+            float curY = 0.0f;
+            
+            UIButton *noNewsButton = [UIButton buttonWithType:UIButtonTypeCustom];
+            noNewsButton.titleLabel.numberOfLines = 0;
+            noNewsButton.titleLabel.lineBreakMode = UILineBreakModeWordWrap;
+            [noNewsButton setTitleColor:[UIColor darkGrayColor] forState:UIControlStateNormal];
+            noNewsButton.titleLabel.textAlignment = UITextAlignmentCenter;
+            [noNewsButton.titleLabel setFont:[UIFont fontWithName:@"HelveticaNeue-Bold" size:28]];
+            [noNewsButton setTitle:NSLocalizedString(@"No News — Tap to Refresh", @"No news label") forState:UIControlStateNormal];
+            noNewsButton.backgroundColor = [UIColor clearColor];
+            [noNewsButton addTarget:self action:@selector(refresh:) forControlEvents:UIControlEventTouchUpInside];
+            noNewsButton.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
+            
+            CGSize s = [[noNewsButton titleForState:UIControlStateNormal] sizeWithFont:noNewsButton.titleLabel.font
+                                                                     constrainedToSize:CGSizeMake( frame.size.width - 20, 999 )];
+            s.width = frame.size.width - 20;
+            
+            [noNewsButton setFrame:CGRectMake( 10, curY, s.width, s.height )];
+            [self.noNewsView addSubview:noNewsButton];
+            curY += noNewsButton.frame.size.height + 45;
+            
+            [self.noNewsView setFrame:CGRectMake( 0, lroundf( ( frame.size.height - self.navBar.frame.size.height - curY ) / 2.0f ), 
+                                                  frame.size.width, curY )];
+                        
+            [self.view addSubview:self.noNewsView];
+        }
         
         imageRequests = [[NSMutableArray alloc] init];
         imageCells = [[NSMutableDictionary alloc] init];
@@ -78,11 +96,9 @@
 - (void) layoutView {
     if( !self.newsTableViewController )
         return;
-        
-    NSNumber *width = [NSNumber numberWithFloat:(self.newsTableViewController.tableView.frame.size.width - 35)];
-    
+            
     for( id cell in [self.newsTableViewController.tableView visibleCells] ) {
-        [cell setCellWidth:width];
+        [cell setCellWidth:(self.newsTableViewController.tableView.frame.size.width - 35)];
         [cell layoutCell];
     }
 }
@@ -102,6 +118,7 @@
     [newsSearchTerm release];
     [newsTableViewController release];
     [sourceLabel release];
+    [noNewsView release];
     [super dealloc];
 }
 
@@ -121,7 +138,7 @@
             
         self.newsTableViewController = ntvc;
         [ntvc release];
-        
+                
         // Size our tableview        
         [self.newsTableViewController.view setFrame:CGRectMake( 0, 
                                                                self.navBar.frame.size.height,
@@ -145,7 +162,7 @@
     
     resultStart = 0;
     isLoadingNews = NO;
-    noNewsButton.hidden = YES;
+    noNewsView.hidden = YES;
         
     [[NSNotificationCenter defaultCenter] 
      addObserver:self 
@@ -160,7 +177,7 @@
         self.newsTableViewController = nil;
     }
     
-    noNewsButton.hidden = NO;
+    noNewsView.hidden = NO;
     
     [[NSNotificationCenter defaultCenter]
      removeObserver:self 
@@ -170,18 +187,13 @@
 
 #pragma mark - performing news search
 
-- (void) setNewsSearchTerm:(NSString *)st {
+- (void) setSearchTerm:(NSString *)st {
     if( !st )
         return;
     
-    if( st != newsSearchTerm ) {
-        [newsSearchTerm release];
-        newsSearchTerm = [st retain];
-    }
+    self.newsSearchTerm = st;
     
-    imageCells = nil;
-    imageCells = [[NSMutableDictionary alloc] init];
-    
+    [imageCells removeAllObjects];    
     resultStart = 0;
     isLoadingNews = NO;
 
@@ -245,7 +257,7 @@
     
     if( resetRefresh ) {
         resultStart = 0;
-        [jsonArticles release], jsonArticles = nil;
+        [jsonArticles removeAllObjects];
     }
     
     // Google returns a max of 64 results.
@@ -254,15 +266,13 @@
         return;
     
     [self stopLoading];     
-    noNewsButton.hidden = YES;
+    noNewsView.hidden = YES;
     
     if( self.newsTableViewController ) {
         CGRect r = self.newsTableViewController.tableView.tableFooterView.frame;
         r.size.height = 90;
         
         [self.newsTableViewController.tableView.tableFooterView setFrame:r];
-        
-        //[DSBezelActivityView newActivityViewForView:self.newsTableViewController.tableView.tableHeaderView withLabel:NSLocalizedString(@"Loading News", @"Loading News")];
     }
     
     UINavigationItem *loading = [[UINavigationItem alloc] initWithTitle:NSLocalizedString(@"Loading...", @"Loading...")];
@@ -283,17 +293,12 @@
                            ( [[[NSUserDefaults standardUserDefaults] stringForKey:@"news_sort_by"] isEqualToString:@"Date"] ? @"&scoring=d" : @"" )
                          ];
     
-    NSLog(@"searching news for: %@ with URL %@", newsSearchTerm, newsURL);
+    NSLog(@"NEWS SEARCH '%@' with URL %@", newsSearchTerm, newsURL);
     
     // Block to be called when we receive a JSON google news response
     PRPConnectionCompletionBlock complete = ^(PRPConnection *connection, NSError *error) {
         [[AccountUtil sharedAccountUtil] endNetworkAction];
-        //[DSBezelActivityView removeViewAnimated:NO];
         isLoadingNews = NO;
-        
-        CGRect r = self.newsTableViewController.tableView.tableFooterView.frame;
-        r.size.height = 40;
-        [self.newsTableViewController.tableView.tableFooterView setFrame:r];
         
         NSString *title = [NSString stringWithFormat:@"%@ %@", 
                            ( isCompoundNewsView ? NSLocalizedString(@"Account", @"Account") : newsSearchTerm ),
@@ -302,23 +307,24 @@
         UINavigationItem *nav = [[[UINavigationItem alloc] initWithTitle:title] autorelease];
         nav.hidesBackButton = YES;
         
-        if( self.navBar.topItem.leftBarButtonItem )
-            nav.leftBarButtonItem = self.navBar.topItem.leftBarButtonItem;
+        if( self.detailViewController.recordOverviewController &&
+            self.subNavViewController.subNavTableType != SubNavLocalAccounts ) {
+            ZKDescribeLayout *layout = [[AccountUtil sharedAccountUtil] layoutForRecord:self.account];
+            
+            if( layout && [layout relatedLists] && [[layout relatedLists] count] > 0 )
+                nav.leftBarButtonItem = [[[UIBarButtonItem alloc] initWithTitle:NSLocalizedString(@"Related Lists", nil)
+                                                                           style:UIBarButtonItemStyleBordered
+                                                                          target:self
+                                                                          action:@selector(toggleRelatedLists)] autorelease];
+        } else if( self.detailViewController.browseButton && !self.detailViewController.recordOverviewController && [RootViewController isPortrait] )
+            nav.leftBarButtonItem = self.detailViewController.browseButton;
+        else
+            nav.leftBarButtonItem = nil;
         
         [self.navBar pushNavigationItem:nav animated:YES];
         
         if (error) {
-            [self removeTableView];
-            /*[PRPAlertView showWithTitle:@"News Error!"
-                                message:[error localizedDescription]
-                            cancelTitle:@"Cancel"
-                            cancelBlock: ^ (void) {
-                                [self removeTableView];
-                             }
-                             otherTitle:@"Retry"
-                             otherBlock: ^ (void) {
-                                 [self refresh:NO];
-                             }];*/            
+            [self removeTableView];          
             return;
         } else {
             NSString *responseStr = [[NSString alloc] initWithData:connection.downloadData encoding:NSUTF8StringEncoding];
@@ -331,14 +337,6 @@
             [jp release];
             
             if( !json || [[json objectForKey:@"responseData"] isMemberOfClass:[NSNull class]] || [[json valueForKeyPath:@"responseData.results"] isMemberOfClass:[NSNull class]] ) {
-                    /*[PRPAlertView showWithTitle:@"News Error"
-                                    message:([json objectForKey:@"responseDetails"] ? [json objectForKey:@"responseDetails"] : @"Failed to get news.")
-                                    cancelTitle:@"Cancel"
-                                cancelBlock:nil
-                                 otherTitle:@"Retry"
-                                 otherBlock:^(void) {
-                                     [self refresh:YES]; 
-                                 }];*/
                 [self removeTableView];
                 return;
             }
@@ -346,9 +344,9 @@
             NSArray *articles = [json valueForKeyPath:@"responseData.results"];
             
             if( jsonArticles )
-                jsonArticles = [[jsonArticles arrayByAddingObjectsFromArray:articles] retain];
+                [jsonArticles addObjectsFromArray:articles];
             else                        
-                jsonArticles = [articles retain];
+                jsonArticles = [[NSMutableArray arrayWithArray:articles] retain];
             
             if( !jsonArticles || [jsonArticles count] == 0 ) {
                 [self removeTableView];
@@ -362,13 +360,6 @@
                                 
                 resultStart = [jsonArticles count];
                 
-                /*self.sourceLabel.text = [NSString stringWithFormat:@"%@ %i/%i %@\n%@",
-                                         NSLocalizedString(@"Displaying", @"Displaying articles"),
-                                         resultStart,
-                                         estimatedArticles,
-                                         NSLocalizedString(@"articles", @"articles"),
-                                         NSLocalizedString(@"Powered by Google News", @"Google news attribution")];*/
-                
                 [self performSelector:@selector(updateVisibleCells) withObject:nil afterDelay:0.1];
                 
                 // Async fetch the images that appear in these articles
@@ -380,7 +371,7 @@
     // Initiate the download
     
     NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:newsURL]];
-    [req addValue:[NSString stringWithFormat:@"Salesforce %@.app for iPad", [AccountUtil appFullName]] forHTTPHeaderField:@"Referer"];
+    [req addValue:[NSString stringWithFormat:@"Salesforce %@ for iPad", [AccountUtil appFullName]] forHTTPHeaderField:@"Referer"];
     
     self.newsConnection = [PRPConnection connectionWithRequest:req
                                              progressBlock:nil
@@ -462,6 +453,23 @@
         }
 }
 
+#pragma mark - related lists
+
+- (void) toggleRelatedLists {    
+    // Pop everything off after this list, then slide it offscreen
+    [self.detailViewController tearOffFlyingWindowsStartingWith:self inclusive:NO];
+    [self slideFlyingWindowToPoint:CGPointMake( 1200, self.view.center.y )];
+    
+    [self performSelector:@selector(delayedLaunchRelatedLists)
+               withObject:nil
+               afterDelay:0.3];
+}
+
+- (void) delayedLaunchRelatedLists {
+    [self.detailViewController tearOffFlyingWindowsStartingWith:self inclusive:YES];
+    [self.detailViewController addFlyingWindow:FlyingWindowListofRelatedLists withArg:nil];
+}
+
 #pragma mark - table view setup
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
@@ -478,7 +486,7 @@
     cell.recordNewsViewController = self;
     cell.tag = indexPath.section;
     
-    [cell setCellWidth:[NSNumber numberWithFloat:(tableView.frame.size.width - 50)]];
+    [cell setCellWidth:(tableView.frame.size.width - 50.0f)];
     
     if( !jsonArticles || [jsonArticles count] <= indexPath.section )
         return cell;

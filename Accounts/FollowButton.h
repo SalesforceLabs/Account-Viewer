@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -29,7 +29,9 @@
 #import "zkSforce.h"
 #import "AccountUtil.h"
 
-@interface FollowButton : UIButton <UIActionSheetDelegate> {}
+@protocol FollowButtonDelegate;
+
+@interface FollowButton : UIBarButtonItem <UIActionSheetDelegate> {}
 
 enum FollowButtonState {
     FollowError = 0,
@@ -43,16 +45,29 @@ enum FollowButtonState {
 @property (nonatomic, retain) NSString *userId;
 @property (nonatomic, retain) NSString *parentId;
 @property (nonatomic, retain) NSString *followId;
-@property (nonatomic, retain) UIActivityIndicatorView *activityIndicator;
+@property (nonatomic, retain) UIActionSheet *sheet;
 
-@property (nonatomic, assign) id target;
-@property (nonatomic, assign) SEL action;
+@property (nonatomic, assign) id <FollowButtonDelegate> delegate;
 
-+ (id) followButtonWithUserId:(NSString *)uId parentId:(NSString *)pId target:(id)target action:(SEL) action;
++ (id) followButtonWithUserId:(NSString *)uId parentId:(NSString *)pId;
++ (UIBarButtonItem *) loadingBarButtonItem;
 
 - (void) buttonTapped:(FollowButton *)sender;
 - (void) loadTitle;
 - (void) loadFollowState;
 - (void) toggleFollow;
+- (void) changeStateToState:(enum FollowButtonState)state isUserAction:(BOOL)isUserAction;
 
 @end
+
+// START:Delegate
+@protocol FollowButtonDelegate <NSObject>
+
+@optional
+
+- (void) followButtonWillChangeState:(FollowButton *)followButton toState:(enum FollowButtonState)state isUserAction:(BOOL)isUserAction;
+- (void) followButtonDidChangeState:(FollowButton *)followButton toState:(enum FollowButtonState)state isUserAction:(BOOL)isUserAction;
+- (void) followButtonDidReceiveException:(FollowButton *)followButton exception:(NSException *)exception;
+
+@end
+// END:Delegate

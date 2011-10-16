@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -28,6 +28,7 @@
 #import "AccountsAppDelegate.h"
 #import "SubNavViewController.h"
 #import "AccountUtil.h"
+#import "RecordDetailViewController.h"
 #import "RootViewController.h"
 #import "DetailViewController.h"
 #import "PRPSmartTableViewCell.h"
@@ -50,6 +51,9 @@ static float searchDelay = 0.4f;
 // Tag used to locate the helper view
 static int helperTag = 11;
 
+// Maximum number of accounts to load via queryMore chains
+static int maxAccounts = 50000;
+
 static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 - (id) initWithTableType:(enum SubNavTableType)tableType {
@@ -58,16 +62,16 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         self.view.backgroundColor = [UIColor colorWithPatternImage:[UIImage imageNamed:@"tableBG.png"]];
         self.view.autoresizingMask = UIViewAutoresizingNone;
         
-        myRecords = [[NSMutableDictionary alloc] init];
-        searchResults = [[NSMutableArray alloc] init];
+        self.myRecords = [NSMutableDictionary dictionary];
+        self.searchResults = [NSMutableDictionary dictionary];
         
         helperViewVisible = NO;
         subNavTableType = tableType;
         storedSize = 0;
-        letUserSelectRow = YES;
         searching = NO;
+        queryingMore = NO;
         
-        int curY = 10;
+        float curY = 10.0f;
         
         // Top section
         UIView *tableHeader = [[[UIView alloc] init] autorelease];
@@ -84,9 +88,9 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         // Title
         if( !self.titleButton ) {
             self.titleButton = [UIButton buttonWithType:UIButtonTypeCustom];
-            [titleButton setFrame:CGRectMake( 10, curY, 170, 20)];
+            [titleButton setFrame:CGRectMake( 10, curY, masterWidth - 10, 27)];
             [titleButton setTitleColor:UIColorFromRGB(0xbababa) forState:UIControlStateNormal];
-            [titleButton.titleLabel setFont:[UIFont boldSystemFontOfSize:16]];
+            [titleButton.titleLabel setFont:[UIFont boldSystemFontOfSize:19]];
             titleButton.titleLabel.shadowColor = [UIColor blackColor];
             titleButton.titleLabel.shadowOffset = CGSizeMake( 0, 2 );
             titleButton.backgroundColor = [UIColor clearColor];            
@@ -98,7 +102,7 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
             [tableHeader addSubview:self.titleButton];
         }
         
-        curY += titleButton.frame.size.height + 2;
+        curY += titleButton.frame.size.height;
         
         // search bar
         if( !self.searchBar ) {
@@ -113,7 +117,6 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
             // background
             [[searchBar.subviews objectAtIndex:0] removeFromSuperview];
             
-            // return button            
             for (UIView *view in searchBar.subviews)
                 if ([view isKindOfClass: [UITextField class]]) {
                     UITextField *tf = (UITextField *)view;
@@ -261,11 +264,17 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     return self;
 }
 
-- (void) refresh {
-    [self refresh:YES];
+- (void) clearRecords {
+    [self.myRecords removeAllObjects];    
+    storedSize = 0;
+    
+    rowCountLabel.text = NSLocalizedString(@"No Accounts", @"No Accounts");
+    
+    [self.pullRefreshTableViewController.tableView reloadData];
+    [self.pullRefreshTableViewController.tableView setContentOffset:CGPointZero animated:NO];
 }
 
-- (void) refresh:(BOOL) resetRefresh {    
+- (void) refresh {  
     [titleButton setTitle:[self whichList] forState:UIControlStateNormal];    
     [titleButton sizeToFit];
     
@@ -283,18 +292,23 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     
     if( ![[[AccountUtil sharedAccountUtil] client] loggedIn] || ![[[AccountUtil sharedAccountUtil] client] currentUserInfo] )
         return;
-    
+        
     [[AccountUtil sharedAccountUtil] startNetworkAction];
-    [DSBezelActivityView newActivityViewForView:self.view];
     
-    if( subNavTableType == SubNavFollowedAccounts ) {        
+    if( [self isEqual:[self.rootViewController currentSubNavViewController]] )
+        [DSBezelActivityView newActivityViewForView:self.view];
+    
+    if( subNavTableType == SubNavFollowedAccounts && [[AccountUtil sharedAccountUtil] isObjectChatterEnabled:@"Account"] ) {        
         // Refresh the list of accounts I'm following, then query those IDs
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0), ^(void) {
             @try {
-                [[AccountUtil sharedAccountUtil] refreshFollowedAccounts:[[[AccountUtil sharedAccountUtil] client] currentUserInfo].userId];
+                [[AccountUtil sharedAccountUtil] refreshFollowedAccounts];
             } @catch( NSException *e ) {
                 [[AccountUtil sharedAccountUtil] endNetworkAction];
-                [DSBezelActivityView removeViewAnimated:YES];
+                
+                if( [self isEqual:[self.rootViewController currentSubNavViewController]] )
+                    [DSBezelActivityView removeViewAnimated:YES];
+                
                 [[AccountUtil sharedAccountUtil] receivedException:e];
                 [(PullRefreshTableViewController *)self.pullRefreshTableViewController stopLoading];
                 
@@ -312,30 +326,20 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
             dispatch_async(dispatch_get_main_queue(), ^(void) {
                 // Do we follow any accounts?
                 if( [[[AccountUtil sharedAccountUtil] getFollowedAccounts] count] == 0 ) {
-                    [[AccountUtil sharedAccountUtil] endNetworkAction];
-                    [DSBezelActivityView removeViewAnimated:YES];
-                    [(PullRefreshTableViewController *)self.pullRefreshTableViewController stopLoading];
-                    rowCountLabel.text = NSLocalizedString(@"No Accounts", @"No Accounts");
+                    [self refreshResult:nil];
                     return;
                 }
                 
-                NSString *accountIDs = @"(";
+                NSMutableString *followedAccountIds = [NSMutableString stringWithString:@""];
                 
-                for( NSString *aID in [[AccountUtil sharedAccountUtil] getFollowedAccounts] ) {
-                    if( [accountIDs length] > 9950 ) // soql query character limit is 10k
-                        break;
-                    
-                    if( [accountIDs isEqualToString:@"("] )
-                        accountIDs = [accountIDs stringByAppendingFormat:@"'%@'", aID];
-                    else
-                        accountIDs = [accountIDs stringByAppendingFormat:@", '%@'", aID];
-                }
-                
-                accountIDs = [accountIDs stringByAppendingString:@")"];
-                
-                NSString *queryString = [NSString stringWithFormat:@"select id, name%@ from Account where id in %@ order by name asc limit 1000",
-                                         ( [[AccountUtil sharedAccountUtil] hasRecordTypes] ? @", recordtypeid" : @"" ),
-                                         accountIDs];
+                for( NSString *followedAccount in [[AccountUtil sharedAccountUtil] getFollowedAccounts] )
+                    [followedAccountIds appendFormat:@"%@'%@'",
+                     ( [followedAccountIds length] > 0 ? @"," : @"" ),
+                     followedAccount];
+
+                NSString *queryString = [NSString stringWithFormat:@"select id, name%@ from Account where id in (%@) order by name asc",
+                                         ( [[AccountUtil sharedAccountUtil] isObjectRecordTypeEnabled:@"Account"] ? @", recordtypeid" : @"" ),
+                                         followedAccountIds];
                 
                 NSLog(@"SOQL %@",queryString);
                 
@@ -347,7 +351,10 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
                         qr = [[[AccountUtil sharedAccountUtil] client] query:queryString];
                     } @catch( NSException *e ) {
                         [[AccountUtil sharedAccountUtil] endNetworkAction];
-                        [DSBezelActivityView removeViewAnimated:YES];
+                        
+                        if( [self isEqual:[self.rootViewController currentSubNavViewController]] )
+                            [DSBezelActivityView removeViewAnimated:YES];
+                        
                         [[AccountUtil sharedAccountUtil] receivedException:e];
                         [(PullRefreshTableViewController *)self.pullRefreshTableViewController stopLoading];
                         
@@ -364,14 +371,22 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
                     }
                     
                     dispatch_async(dispatch_get_main_queue(), ^(void) {
-                        [self refreshResult:[qr records]];
+                        if( qr && [qr records] && [[qr records] count] > 0 ) {
+                            [self refreshResult:[qr records]];
+                            
+                            if( [qr queryLocator] ) {
+                                [DSBezelActivityView newActivityViewForView:self.view];
+                                [self queryMore:[qr queryLocator]];
+                            }
+                        } else
+                            [self refreshResult:nil];
                     });
                 });
             });
         });
     } else if( subNavTableType == SubNavOwnedAccounts ) {
-        NSString *queryString = [NSString stringWithFormat:@"select id, name%@ from Account where ownerid='%@' order by name asc limit 1000",
-                                 ( [[AccountUtil sharedAccountUtil] hasRecordTypes] ? @", recordtypeid" : @"" ),
+        NSString *queryString = [NSString stringWithFormat:@"select id, name%@ from Account where ownerid='%@' order by name asc",
+                                 ( [[AccountUtil sharedAccountUtil] isObjectRecordTypeEnabled:@"Account"] ? @", recordtypeid" : @"" ),
                                  [[[[AccountUtil sharedAccountUtil] client] currentUserInfo] userId]];
         
         NSLog(@"SOQL %@",queryString);
@@ -384,24 +399,26 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
                 qr = [[[AccountUtil sharedAccountUtil] client] query:queryString];
             } @catch( NSException *e ) {
                 [[AccountUtil sharedAccountUtil] endNetworkAction];
-                [DSBezelActivityView removeViewAnimated:YES];
+                
+                if( [self isEqual:[self.rootViewController currentSubNavViewController]] )
+                    [DSBezelActivityView removeViewAnimated:YES];
+                
                 [[AccountUtil sharedAccountUtil] receivedException:e];
                 [(PullRefreshTableViewController *)self.pullRefreshTableViewController stopLoading];
-                
-                [PRPAlertView showWithTitle:NSLocalizedString(@"Alert", @"Alert")
-                                    message:NSLocalizedString(@"Failed to load Accounts.", @"Account query failed")
-                                cancelTitle:NSLocalizedString(@"Cancel", @"Cancel")
-                                cancelBlock:nil 
-                                 otherTitle:NSLocalizedString(@"Retry", @"Retry")
-                                 otherBlock: ^(void) {
-                                     [self refresh];
-                                 }];
                 
                 return;
             }
             
             dispatch_async(dispatch_get_main_queue(), ^(void) {
-                [self refreshResult:[qr records]];
+                if( qr && [qr records] && [[qr records] count] > 0 ) {
+                    [self refreshResult:[qr records]];
+                    
+                    if( [qr queryLocator] ) {
+                        [DSBezelActivityView newActivityViewForView:self.view];
+                        [self queryMore:[qr queryLocator]];
+                    }
+                } else
+                    [self refreshResult:nil];
             });
         });
     }
@@ -409,22 +426,18 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 - (void) refreshResult:(NSArray *)results {
     [[AccountUtil sharedAccountUtil] endNetworkAction];
-    [DSBezelActivityView removeViewAnimated:YES];
+    
+    if( [self isEqual:[self.rootViewController currentSubNavViewController]] )
+        [DSBezelActivityView removeViewAnimated:NO];
 
     if( [self.pullRefreshTableViewController respondsToSelector:@selector(stopLoading)] )
         [(PullRefreshTableViewController *)self.pullRefreshTableViewController stopLoading];
-    
-    NSString *selectedAccountId = nil;
-    
-    if( [self.pullRefreshTableViewController.tableView indexPathForSelectedRow] )
-        selectedAccountId = [[AccountUtil accountFromIndexPath:[self.pullRefreshTableViewController.tableView indexPathForSelectedRow]
-                                             accountDictionary:myRecords] objectForKey:@"Id"];
-    
+            
     // Clear out existing accounts on this list
-    [myRecords removeAllObjects];
+    [self.myRecords removeAllObjects];
     
     if( results && [results count] > 0 ) {        
-        myRecords = [[NSMutableDictionary dictionaryWithDictionary:[AccountUtil dictionaryFromAccountArray:results]] retain];
+        self.myRecords = [NSMutableDictionary dictionaryWithDictionary:[AccountUtil dictionaryFromAccountArray:results]];
         
         storedSize = [results count];
         
@@ -437,11 +450,15 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         
         [self.pullRefreshTableViewController.tableView reloadData];
         [self.pullRefreshTableViewController.tableView setContentOffset:CGPointZero animated:NO];
-        [self selectAccountWithId:selectedAccountId];
+        
+        if( [self.detailViewController visibleAccountId] )
+            [self selectAccountWithId:[self.detailViewController visibleAccountId]];
         
         // With a new list of accounts in place, notify our detail view to display news for them
         // but only if it's not already displaying news
         if( self.detailViewController.subNavViewController == self && 
+            [self isEqual:[self.rootViewController currentSubNavViewController]] &&
+            !queryingMore &&
             ( !self.detailViewController.flyingWindows || [self.detailViewController.flyingWindows count] == 0 ) ) {
             [NSObject cancelPreviousPerformRequestsWithTarget:self.detailViewController selector:@selector(addAccountNewsTable) object:nil];
             [self.detailViewController performSelector:@selector(addAccountNewsTable) withObject:nil afterDelay:0.5];
@@ -456,7 +473,9 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         
         // Displays default news headlines (for SFDC) if no accounts are visible
         if( self.detailViewController.subNavViewController == self && 
-           ( !self.detailViewController.flyingWindows || [self.detailViewController.flyingWindows count] == 0 ) ) {
+            [self isEqual:[self.rootViewController currentSubNavViewController]] &&
+            !queryingMore &&
+            ( !self.detailViewController.flyingWindows || [self.detailViewController.flyingWindows count] == 0 ) ) {
             [NSObject cancelPreviousPerformRequestsWithTarget:self.detailViewController selector:@selector(addAccountNewsTable) object:nil];
             [self.detailViewController performSelector:@selector(addAccountNewsTable) withObject:nil afterDelay:0.5];
         }
@@ -467,6 +486,67 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     
     if( subNavTableType == SubNavLocalAccounts )
         [self setupNavBar];
+}
+
+- (void) queryMore:(NSString *)queryLocator {
+    if( storedSize >= maxAccounts )
+        return;
+    
+    queryingMore = YES;
+    
+    NSLog(@"querying more with locator %@", queryLocator);
+    
+    [[AccountUtil sharedAccountUtil] startNetworkAction];
+    
+    // run the query in the background thread, when its done, update the ui.
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0), ^(void) {
+        ZKQueryResult *qr = nil;
+        
+        @try {
+            qr = [[[AccountUtil sharedAccountUtil] client] queryMore:queryLocator];
+        } @catch( NSException *e ) {
+            [[AccountUtil sharedAccountUtil] endNetworkAction];
+            [[AccountUtil sharedAccountUtil] receivedException:e];
+            
+            if( [self isEqual:[self.rootViewController currentSubNavViewController]] )
+                [DSBezelActivityView removeViewAnimated:YES];
+            
+            [(PullRefreshTableViewController *)self.pullRefreshTableViewController stopLoading];
+            
+            return;
+        }
+        
+        dispatch_async(dispatch_get_main_queue(), ^(void) {
+            [[AccountUtil sharedAccountUtil] endNetworkAction];
+            queryingMore = NO;
+            
+            if( qr && [qr records] && [[qr records] count] > 0 ) {
+                self.myRecords = [NSMutableDictionary dictionaryWithDictionary:
+                                  [AccountUtil dictionaryByAddingAccounts:[qr records]
+                                                             toDictionary:self.myRecords]];
+                
+                storedSize += [[qr records] count];
+                rowCountLabel.text = [NSString stringWithFormat:@"%i %@",
+                                      storedSize,
+                                      ( storedSize != 1 ? NSLocalizedString(@"Accounts", @"Account plural") : NSLocalizedString(@"Account", @"Account singular") )];
+                
+                [self.pullRefreshTableViewController.tableView reloadData];
+                [self.pullRefreshTableViewController.tableView setContentOffset:CGPointZero animated:NO];
+                
+                if( [self.detailViewController visibleAccountId] )
+                    [self selectAccountWithId:[self.detailViewController visibleAccountId]];
+                
+                if( [qr queryLocator] )
+                    [self queryMore:[qr queryLocator]];
+                else {
+                    NSLog(@"no more to query");
+                    if( [self isEqual:[self.rootViewController currentSubNavViewController]] )
+                        [DSBezelActivityView removeViewAnimated:YES];
+                }
+            } else if( [self isEqual:[self.rootViewController currentSubNavViewController]] )
+                [DSBezelActivityView removeViewAnimated:YES];
+        });
+    });
 }
 
 - (void)dealloc {
@@ -505,7 +585,6 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     searching = [theSearchBar.text length] > 0;
     
     //[searchBar setShowsCancelButton:searching animated:YES];
-    //letUserSelectRow = NO;
     //self.tableView.scrollEnabled = NO;
 }
 
@@ -584,10 +663,11 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     if( [searchText length] < 2 )
         return;
     
+    [self.searchResults removeAllObjects];
+    
     // Is this a search of local accounts?
     if( subNavTableType == SubNavLocalAccounts ) {
         NSMutableArray *searchArray = [NSMutableArray array];
-        searchResults = [NSDictionary dictionary];
         
         for( NSArray *acclist in [myRecords allValues] )
             [searchArray addObjectsFromArray:acclist];
@@ -602,7 +682,7 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
                 }
         
         if( [resultArray count] > 0 )
-            searchResults = [[AccountUtil dictionaryFromAccountArray:resultArray] retain];
+            self.searchResults = [NSMutableDictionary dictionaryWithDictionary:[AccountUtil dictionaryFromAccountArray:resultArray]];
         
         [titleButton setTitle:[NSString stringWithFormat:@"%@ (%i) ▼", 
                                NSLocalizedString(@"Results", @"Results"),
@@ -620,14 +700,15 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         
         NSLog(@"SOSL search for %@", searchText);
         
-        NSString *sosl = [NSString stringWithFormat:@"FIND {%@*} IN ALL FIELDS RETURNING Account (id, name, owner.name)", 
-                          searchText];
+        NSString *sosl = [NSString stringWithFormat:@"FIND {%@*} IN ALL FIELDS RETURNING Account (id, name%@)", 
+                          searchText,
+                          [[AccountUtil sharedAccountUtil] isObjectRecordTypeEnabled:@"Account"] ? @", RecordTypeId" : @""];
         
         [[AccountUtil sharedAccountUtil] startNetworkAction];
         
         // Execute search
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0), ^(void) {
-            NSArray *results = [NSDictionary dictionary];
+            NSArray *results = nil;
             
             @try {
                 results = [[[AccountUtil sharedAccountUtil] client] search:sosl];
@@ -643,8 +724,8 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
                 [[AccountUtil sharedAccountUtil] endNetworkAction];
                 [(PullRefreshTableViewController *)self.pullRefreshTableViewController stopLoading];
                 
-                searchResults = nil;
-                searchResults = [[NSMutableDictionary dictionaryWithDictionary:[AccountUtil dictionaryFromAccountArray:results]] retain];
+                if( results && [results count] > 0 )
+                    self.searchResults = [NSMutableDictionary dictionaryWithDictionary:[AccountUtil dictionaryFromAccountArray:results]];
                 
                 rowCountLabel.text = [NSString stringWithFormat:@"%i %@",
                                      [results count],
@@ -700,10 +781,10 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 - (void) accountDidUpsert:(AccountAddEditController *)accountAddEditController {
     [self.detailViewController dismissModalViewControllerAnimated:YES];
     
+    [self refresh];
+    
     NSDictionary *account = [NSDictionary dictionaryWithDictionary:accountAddEditController.fields];
-    NSIndexPath *ip = [AccountUtil indexPathForAccountDictionary:account accountDictionary:myRecords];
-        
-    [self refresh:YES];
+    NSIndexPath *ip = [AccountUtil indexPathForAccountDictionary:account allAccountDictionary:myRecords];
     
     [self.pullRefreshTableViewController.tableView selectRowAtIndexPath:ip animated:YES scrollPosition:UITableViewScrollPositionNone];
     [self tableView:self.pullRefreshTableViewController.tableView didSelectRowAtIndexPath:ip];
@@ -809,25 +890,20 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     return [sectionView autorelease];
 }
 
-- (NSIndexPath *)tableView :(UITableView *)theTableView willSelectRowAtIndexPath:(NSIndexPath *)indexPath {    
-    return ( letUserSelectRow ? indexPath : nil );
-}
-
 - (void) selectAccountWithId:(NSString *)accountId {
-    if( accountId ) {
-        for( NSArray *accountArray in [myRecords allValues] )
-            for( NSDictionary *account in accountArray )
-                if( [[account objectForKey:@"Id"] isEqualToString:accountId] ) {
-                    NSIndexPath *path = [AccountUtil indexPathForAccountDictionary:account accountDictionary:myRecords];
-                    
-                    if( path )
-                        [self.pullRefreshTableViewController.tableView selectRowAtIndexPath:path animated:NO scrollPosition:UITableViewScrollPositionNone];
-
-                    return;
-                }
-    }
-    
-    [self.pullRefreshTableViewController.tableView deselectRowAtIndexPath:[self.pullRefreshTableViewController.tableView indexPathForSelectedRow] animated:YES];
+    if( accountId ) {        
+        NSDictionary *d = [NSDictionary dictionaryWithObjectsAndKeys:accountId, @"Id", nil];
+        NSIndexPath *path = [AccountUtil indexPathForAccountDictionary:d
+                                                  allAccountDictionary:( searching ? self.searchResults : self.myRecords )];
+                
+        if( path )
+            [self.pullRefreshTableViewController.tableView selectRowAtIndexPath:path animated:NO scrollPosition:UITableViewScrollPositionNone];
+        else
+            [self.pullRefreshTableViewController.tableView deselectRowAtIndexPath:[self.pullRefreshTableViewController.tableView indexPathForSelectedRow]
+                                                                         animated:YES];
+    } else 
+        [self.pullRefreshTableViewController.tableView deselectRowAtIndexPath:[self.pullRefreshTableViewController.tableView indexPathForSelectedRow]
+                                                                     animated:YES];
 }
 
 - (NSArray *)sectionIndexTitlesForTableView:(UITableView *)tableView {          
@@ -885,15 +961,7 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     cell.textLabel.text = [account objectForKey:@"Name"];
     cell.textLabel.textColor = UIColorFromRGB(0xbababa);
     cell.textLabel.font = [UIFont boldSystemFontOfSize:15];
-    
-    cell.detailTextLabel.textColor = [UIColor whiteColor];
-    
-    if( searching && [account objectForKey:@"Owner"] )
-        cell.detailTextLabel.text = [NSString stringWithFormat:@"%@: %@",
-                                     NSLocalizedString(@"Owner", @"Owner"),
-                                     [((ZKSObject *)[account objectForKey:@"Owner"]) fieldValue:@"Name"]];
-    else
-        cell.detailTextLabel.text = @"";
+    cell.detailTextLabel.text = @"";
     
     UIImageView *selectedGradient = [[[UIImageView alloc] initWithImage:[UIImage imageNamed:@"leftgradient.png"]] autorelease];
     
@@ -915,7 +983,6 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     
     if( searching )
         account = [AccountUtil accountFromIndexPath:indexPath accountDictionary:searchResults];
-        //[searchResults objectAtIndex:indexPath.row];
     else
         account = [AccountUtil accountFromIndexPath:indexPath accountDictionary:myRecords];
     
@@ -949,12 +1016,8 @@ static NSString *indexAlphabet = @"#ABCDEFGHIJKLMNOPQRSTUVWXYZ";
                                  [tableView deleteSections:[NSIndexSet indexSetWithIndex:[indexPath section]] withRowAnimation:UITableViewRowAnimationFade];
                              } else {
                                  NSMutableArray *accounts = [NSMutableArray arrayWithArray:[myRecords objectForKey:index]];
-                                 int tag = 0;
-                                 
-                                 if( [thisAccount objectForKey:@"tag"] )
-                                     tag = [[thisAccount objectForKey:@"tag"] integerValue];
-                                 
-                                 [accounts removeObjectAtIndex:tag];
+
+                                 [accounts removeObjectAtIndex:indexPath.row];
                                  
                                  [myRecords setObject:accounts forKey:index];
                                  [tableView deleteRowsAtIndexPaths:[NSArray arrayWithObject:indexPath] withRowAnimation:UITableViewRowAnimationFade];

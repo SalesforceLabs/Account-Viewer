@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -71,10 +71,7 @@
     splitViewController.splitPosition = masterWidth;
     splitViewController.splitWidth = 1;
     splitViewController.allowsDraggingDivider = NO;
-    
-    UIImage *splash = [UIImage imageNamed:@"Default.png"];
-    //( [RootViewController isPortrait] ? [UIImage imageNamed:@"Default-Portrait~ipad.png"] : [UIImage imageNamed:@"Default-Landscape~ipad.png"] );
-    self.splashScreen.splashImage = splash;
+        
     self.splashScreen.showsStatusBarOnDismissal = YES;
     self.splashScreen.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
     [self.splitViewController presentModalViewController:splashScreen animated:NO];
@@ -136,10 +133,8 @@
 }
 
 - (void) applicationDidReceiveMemoryWarning:(UIApplication *)application {
-    NSLog(@"received memory warning.");
-    
-    // Release our cache of photos and geolocations - this also releases layouts and describes
-    //[[AccountUtil sharedAccountUtil] emptyCaches];
+    NSLog(@"received memory warning (delegate)");
+    [[AccountUtil sharedAccountUtil] emptyCaches:NO];
 }
 
 - (void)dealloc
@@ -148,6 +143,7 @@
     [splitViewController release];
     [rootViewController release];
     [detailViewController release];
+    [splashScreen release];
     [super dealloc];
 }
 

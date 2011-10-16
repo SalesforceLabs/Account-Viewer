@@ -1,3 +1,28 @@
+/* v1.1 */
+"About Account Viewer" = "关于 Account Viewer";
+"Account News" = "Account News";
+"Account, Group, or User" = "帐户、小组或用户";
+"Ask the Community" = "在社区发问";
+"User or Group" = "用户或小组";
+"Body" = "正文";
+"Call with FaceTime" = "使用 FaceTime 通话";
+"Call with Skype" = "使用 Skype 通话";
+"Chatter Groups" = "Chatter 小组";
+"EULA" = "EULA";
+"FAQ" = "常见问题解答";
+"Help" = "帮助";
+"Link" = "链接";
+"New in v1.1: Related Lists! View full record detail for any standard or custom related object." = "v1.1 新增功能：相关列表！查看任何标准或自定义相关对象的完整记录详细信息。";
+"New in v1.1: Share any article or link to Chatter!" = "v1.1 新增功能：将任何文章或链接分享至 Chatter！";
+"No Results" = "没有结果";
+"Post" = "张贴";
+"Post to" = "张贴到";
+"Posting..." = "正在张贴...";
+"Related Lists" = "相关列表";
+"Share on Chatter" = "分享至 Chatter";
+"shared a link." = "已分享链接。";
+"Title" = "标题";
+
 /* Account
  Account object name
  Account singular */
@@ -195,7 +220,7 @@
 "No Local Accounts" = "没有本地帐户";
 
 /* No news label */
-"No news — Tap to refresh" = "没有新闻，轻触以刷新";
+"No News — Tap to Refresh" = "没有新闻\n轻触以刷新";
 
 /* OK */
 "OK" = "确定";

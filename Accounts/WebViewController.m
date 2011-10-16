@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -29,28 +29,34 @@
 #import "WebViewController.h"
 #import "DetailViewController.h"
 #import "RootViewController.h"
+#import "SubNavViewController.h"
 #import "PRPAlertView.h"
+#import "ChatterPostController.h"
+#import "SlideInView.h"
+#import "DSActivityView.h"
 
 @implementation WebViewController
 
-@synthesize webView, navBar, myActionSheet;
+@synthesize webView, navBar, myActionSheet, chatterPop, actionButton, destURL;
+
+int webviewLoads;
 
 - (id) initWithFrame:(CGRect)frame {
     if((self = [super initWithFrame:frame])) {        
         myActionSheet = nil;
         
-        self.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
         self.modalPresentationStyle = UIModalPresentationFullScreen;
         self.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
-        self.view.autoresizesSubviews = YES;
         
         self.webView = [[[UIWebView alloc] initWithFrame:CGRectMake(0, self.navBar.frame.size.height, frame.size.width, frame.size.height - self.navBar.frame.size.height)] autorelease];
         self.webView.delegate = self;
-        self.webView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        self.webView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleBottomMargin;
         self.webView.backgroundColor = [UIColor colorWithPatternImage:[UIImage imageNamed:@"linenBG.png"]];
         self.webView.scalesPageToFit = YES;
                 
         [self.view addSubview:self.webView];
+        
+        webviewLoads = 0;
                 
         UINavigationItem *item = [[[UINavigationItem alloc] initWithTitle:@"Loading"] autorelease];
         item.hidesBackButton = YES;
@@ -70,38 +76,44 @@
 }
 
 - (UIToolbar *) toolBarForSide:(BOOL)isLeftSide {
-    UIToolbar* toolbar = [[UIToolbar alloc]
-                          initWithFrame:CGRectMake(0, 0, 150, navBar.frame.size.height)];
+    UIToolbar* toolbar = [[UIToolbar alloc] initWithFrame:CGRectZero];
     NSArray *buttons = nil;
     
     toolbar.tintColor = AppSecondaryColor;
     toolbar.opaque = YES;
+    
+    CGRect toolbarFrame = CGRectMake( 0, 0, 130, navBar.frame.size.height );
     
     UIBarButtonItem *spacer = [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace
                                                                             target:nil
                                                                              action:nil] autorelease];
     
     // Set up our right side nav bar
-    if( !isLeftSide ) {                
-        UIBarButtonItem *actionButton = [[[UIBarButtonItem alloc]
+    if( !isLeftSide ) { 
+        toolbarFrame.size.width = 110;
+        
+        self.actionButton = [[[UIBarButtonItem alloc]
                                          initWithBarButtonSystemItem:UIBarButtonSystemItemAction
                                          target:self
-                                         action:@selector(showURLPopover:)] autorelease];
+                                         action:@selector(showActionPopover:)] autorelease];
+        
+        self.actionButton.enabled = ![[[[self.webView request] URL] absoluteString] isEqualToString:@"about:blank"];
         
         UIBarButtonItem *expandButton = nil;
         
         if( !isFullScreen )
-            expandButton = [[[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"expand.png"] 
+            expandButton = [[[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"zoomin.png"] 
                                                                          style:UIBarButtonItemStylePlain
                                                                         target:self
                                                                         action:@selector(toggleFullScreen)] autorelease];
         else
-            expandButton = [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone
+            expandButton = [[[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"zoomout.png"] 
+                                                             style:UIBarButtonItemStylePlain
                                                             target:self
                                                             action:@selector(toggleFullScreen)] autorelease];
             
         
-        buttons = [NSArray arrayWithObjects:actionButton, spacer, expandButton, spacer, nil];
+        buttons = [NSArray arrayWithObjects:actionButton, spacer, expandButton, nil];
     } else {
         // left side toolbar
         UIBarButtonItem *back = [[[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"back.png"] 
@@ -135,6 +147,8 @@
     if( buttons )
         [toolbar setItems:buttons animated:NO];
     
+    [toolbar setFrame:toolbarFrame];
+    
     return [toolbar autorelease];
 }
 
@@ -146,7 +160,7 @@
     } else {
         [self.rootViewController.splitViewController dismissModalViewControllerAnimated:YES];
         isFullScreen = NO;
-        [self.detailViewController addFlyingWindow:FlyingWindowWebView withArg:[[[self.webView request] URL] absoluteString]];
+        [self.detailViewController addFlyingWindow:FlyingWindowWebView withArg:self.destURL];
     }
 }
 
@@ -155,6 +169,8 @@
 	[webView release];
     [navBar release];
     [destURL release];
+    [chatterPop release];
+    [actionButton release];
     [super dealloc];
 }
 
@@ -185,18 +201,21 @@
 - (void) webView:(UIWebView *)webView didFailLoadWithError:(NSError *)error {
     [[AccountUtil sharedAccountUtil] endNetworkAction];
     navBar.topItem.title = @"";    
-    [self resetNavToolbar];
+    webviewLoads--;
+    
+    if( webviewLoads == 0 )
+        [self resetNavToolbar];
     
     [[AccountUtil sharedAccountUtil] receivedAPIError:error];
     
-    if( [error code] == -1003 )
+    if( [error code] == -1003 || [error code] == -1009 )
         [PRPAlertView showWithTitle:[[error userInfo] objectForKey:@"NSErrorFailingURLStringKey"]
                             message:[error localizedDescription]
                         cancelTitle:nil
                         cancelBlock:nil
                          otherTitle:NSLocalizedString(@"OK", @"OK") 
                          otherBlock:^(void) {
-                             [self.detailViewController tearOffFlyingWindowsStartingWith:self];
+                             [self.detailViewController tearOffFlyingWindowsStartingWith:self inclusive:YES];
                          }];
     else if( [error code] != -999 )
         [PRPAlertView showWithTitle:[[error userInfo] objectForKey:@"NSErrorFailingURLStringKey"]
@@ -207,17 +226,35 @@
 - (void)webViewDidStartLoad:(UIWebView *)wv {
     [self resignFirstResponder];
     
+    if( webviewLoads == 0 )
+        [self resetNavToolbar];
+    
+    webviewLoads++;
     [[AccountUtil sharedAccountUtil] startNetworkAction];
     navBar.topItem.title = NSLocalizedString(@"Loading...", @"Loading...");
-    
-    [self resetNavToolbar];
 }
 
-- (void)webViewDidFinishLoad:(UIWebView *)wv {
+- (void)webViewDidFinishLoad:(UIWebView *)wv {    
     [[AccountUtil sharedAccountUtil] endNetworkAction];
+    webviewLoads--;
+    
+    [[NSUserDefaults standardUserDefaults] setInteger:0 forKey:@"WebKitCacheModelPreferenceKey"];
+    
+    if( webviewLoads > 0 )
+        return;
+    
     navBar.topItem.title = [wv stringByEvaluatingJavaScriptFromString:@"document.title"];
+    self.destURL = [[[wv request] URL] absoluteString];
     
     [self resetNavToolbar];
+    
+    if( self.chatterPop && [self.chatterPop isPopoverVisible] ) {
+        ChatterPostController *cpc = (ChatterPostController *)[(UINavigationController *)[self.chatterPop contentViewController] visibleViewController];
+        
+        [cpc updatePostDictionary:[NSDictionary dictionaryWithObjectsAndKeys:
+                                   self.destURL, @"link",
+                                   nil]];
+    }
 }
 
 - (void) stopLoading {
@@ -251,24 +288,37 @@
     }
 }
 
-- (void) showURLPopover:(id)sender {    
-    if( myActionSheet ) {
-        [myActionSheet dismissWithClickedButtonIndex:-1 animated:YES];
-        myActionSheet = nil;
+- (void) showActionPopover:(id)sender {    
+    if( self.myActionSheet && [self.myActionSheet isVisible] ) {
+        [self.myActionSheet dismissWithClickedButtonIndex:-1 animated:YES];
+        self.myActionSheet = nil;
         return;
+    } else {
+        [self.myActionSheet dismissWithClickedButtonIndex:-1 animated:YES];
+        self.myActionSheet = nil;
     }
     
-    UIActionSheet *action = [[UIActionSheet alloc] initWithTitle:[[[self.webView request] URL] absoluteString]
-                                                        delegate:self
-                                               cancelButtonTitle:nil
-                                          destructiveButtonTitle:nil
-                                               otherButtonTitles:NSLocalizedString(@"Copy Link", @"Copy link"),
-                                                    NSLocalizedString(@"Open in Safari", @"Open in safari"),
-                                                    NSLocalizedString(@"Mail Link", @"Mail Link"),
-                                                    nil];
+    if( self.chatterPop ) {
+        [self.chatterPop dismissPopoverAnimated:YES];
+        self.chatterPop = nil;
+    }
+    
+    UIActionSheet *action = [[UIActionSheet alloc] init];
+    
+    [action setTitle:self.destURL];
+    [action setDelegate:self];
+    
+    if( [[AccountUtil sharedAccountUtil] isChatterEnabled] )
+        [action addButtonWithTitle:NSLocalizedString(@"Share on Chatter", @"Share on Chatter")];
+    
+    [action addButtonWithTitle:NSLocalizedString(@"Copy Link", @"Copy link")];
+    [action addButtonWithTitle:NSLocalizedString(@"Open in Safari", @"Open in safari")];
+    
+    if ([MFMailComposeViewController canSendMail])
+        [action addButtonWithTitle:NSLocalizedString(@"Mail Link", @"Mail Link")];
     
     [action showFromBarButtonItem:sender animated:YES];
-    myActionSheet = action;
+    self.myActionSheet = action;
     [action release];
 }
 
@@ -276,7 +326,7 @@
     if( ![[url lowercaseString] hasPrefix:@"http://"] && ![[url lowercaseString] hasPrefix:@"https://"] )
         url = [NSString stringWithFormat:@"http://%@", url];
     
-    destURL = [url retain];
+    self.destURL = url;
     
     [self stopLoading];
     
@@ -301,25 +351,101 @@
 
 // We've clicked a button in this contextual menu
 -(void)actionSheet:(UIActionSheet *)actionSheet clickedButtonAtIndex:(NSInteger)buttonIndex {
+    if( buttonIndex == -1 )
+        return;
+    
+    if( ![[AccountUtil sharedAccountUtil] isChatterEnabled] )
+        buttonIndex++;
+    
+    if( self.chatterPop ) {
+        [self.chatterPop dismissPopoverAnimated:NO];
+        self.chatterPop = nil;
+    }
+    
     if (buttonIndex == 0) {
+        NSDictionary *account = nil;
+        
+        if( self.detailViewController.recordOverviewController && 
+           [[[self.detailViewController.recordOverviewController account] objectForKey:@"Id"] length] >= 15 &&
+           [[AccountUtil sharedAccountUtil] isObjectChatterEnabled:@"Account"] )
+            account = [self.detailViewController.recordOverviewController account];        
+        
+        ChatterPostController *cpc = [[ChatterPostController alloc] initWithPostDictionary:
+                                      [NSDictionary dictionaryWithObjectsAndKeys:
+                                       self.destURL, @"link",
+                                       [self.webView stringByEvaluatingJavaScriptFromString:@"document.title"], @"title",
+                                       ( account ? [account objectForKey:@"Name"] : [[[[AccountUtil sharedAccountUtil] client] currentUserInfo] fullName] ), @"parentName",
+                                       ( account ? [account objectForKey:@"Id"] : [[[[AccountUtil sharedAccountUtil] client] currentUserInfo] userId] ), @"parentId",
+                                       ( account ? @"Account" : @"User" ), @"parentType",
+                                       nil]];
+        cpc.delegate = self;
+                
+        UINavigationController *aNavController = [[UINavigationController alloc] initWithRootViewController:cpc];
+        [cpc release];
+        
+        self.chatterPop = [[[UIPopoverController alloc] initWithContentViewController:aNavController] autorelease];
+        self.chatterPop.delegate = self;
+        [aNavController release];
+        
+        [self.chatterPop presentPopoverFromBarButtonItem:self.actionButton
+                                permittedArrowDirections:UIPopoverArrowDirectionAny
+                                                animated:YES];
+    } else if( buttonIndex == 1 ) {
         UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
-        pasteboard.string = [[self.webView.request URL] absoluteString];      
-    } else if (buttonIndex == 1) {
-        [[UIApplication sharedApplication] openURL:[self.webView.request URL]];
-    } else if( buttonIndex == 2 ) {
-        if ([MFMailComposeViewController canSendMail]) {
-            
-            MFMailComposeViewController *mailViewController = [[MFMailComposeViewController alloc] init];
-            mailViewController.mailComposeDelegate = self;
-            [mailViewController setSubject:@""];
-            [mailViewController setMessageBody:[[webView.request URL] absoluteString] isHTML:NO];
-            
-            [self presentModalViewController:mailViewController animated:YES];
-            [mailViewController release];
-        }
+        pasteboard.string = self.destURL;      
+    } else if (buttonIndex == 2) {
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:self.destURL]];
+    } else if( buttonIndex == 3 ) {
+        MFMailComposeViewController *mailViewController = [[MFMailComposeViewController alloc] init];
+        mailViewController.mailComposeDelegate = self;
+        [mailViewController setSubject:@""];
+        [mailViewController setMessageBody:[NSString stringWithFormat:@"%@\n%@",
+                                        [webView stringByEvaluatingJavaScriptFromString:@"document.title"],
+                                        self.destURL]
+                                    isHTML:NO];
+        
+        [self presentModalViewController:mailViewController animated:YES];
+        [mailViewController release];
     }
     
     myActionSheet = nil;
+}
+
+#pragma mark - popover delegate
+
+- (BOOL)popoverControllerShouldDismissPopover:(UIPopoverController *)popoverController {
+    return NO;
+}
+
+#pragma mark - chatter post delegate
+
+- (void) chatterPostDidPost:(ChatterPostController *)chatterPostController {
+    SlideInView *checkView = [SlideInView viewWithImage:[UIImage imageNamed:@"postSuccess.png"]];
+    
+    [checkView showWithTimer:1.5f 
+                      inView:((UINavigationController *)self.chatterPop.contentViewController).topViewController.view
+                        from:SlideInViewTop
+                      bounce:NO];
+    
+    [self performSelector:@selector(dismissPopover)
+               withObject:nil
+               afterDelay:1.6f];
+}
+
+- (void) dismissPopover {    
+    [self.chatterPop dismissPopoverAnimated:YES];
+    self.chatterPop = nil;
+}
+
+- (void) chatterPostDidDismiss:(ChatterPostController *)chatterPostController {
+    [self dismissPopover];
+}
+
+- (void) chatterPostDidFailWithException:(ChatterPostController *)chatterPostController exception:(NSException *)e {
+    [[AccountUtil sharedAccountUtil] receivedException:e];
+    [PRPAlertView showWithTitle:NSLocalizedString(@"Alert", @"Alert") 
+                        message:[e reason]
+                    buttonTitle:@"OK"];
 }
 
 @end

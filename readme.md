@@ -20,6 +20,14 @@ In this document:
 
 ## Release History ##
 
+New in v1.1 (October 12, 2011)
+
+- Related Lists! Browse all related lists on your Account layout and tap individual related records to view full related record detail!
+- Share any article or URL to Chatter! With any webpage open, tap the action link and choose 'Share to Chatter'.
+- Browse up to 50,000 owned accounts in the "My Accounts" list.
+- Full support for rich text fields, including links and images!
+- Numerous other tweaks, fixes, and performance improvements.
+
 New in v1.0.1 (September 8, 2011)
 
 - Fixes an issue where some users were unable to view any remote account if they didn't have field-level security access to one of the four overview fields on Account (Name, Phone, Website, Industry)
@@ -64,19 +72,20 @@ Other app details (first-run settings, other app preferences) are stored in `NSU
 	For OAuth, create a new Remote Access application (Setup -> Develop -> Remote Access) and copy your OAuth Client ID into the `OAuthClientID` variable in `RootViewController.h`. Then, set the `useClientLogin` variable in `RootViewController.m` to `NO`.
 
 	For client login with a hardcoded username/password, enter your credentials into the `clientUserName` and `clientPassword` variables in `RootViewController.m`. Then, set the `useClientLogin` variable in `RootViewController.m` to `YES`.
+
 3. If you have a Google API key, paste it into `RecordNewsViewController.h` under `NEWS_API_KEY`.
 4. Build and run, and you should be good to go!
 5. If you're getting build warnings/errors akin to "Multiple build commands for output file...", you'll need to remove the .git directory from your project. See [this answer](http://stackoverflow.com/questions/2718246/xcode-strange-warning-multiple-build-commands-for-output-file) for more detail.
 
 ## App Architecture ##
 
-When the app first loads, it evaluates whether it has a stored OAuth refresh token from a previous authentication. If so, it attempts to refresh the OAuth session with that refresh token. See `appFinishedLaunching` in `RootViewController.m`. If there is no stored refresh token, or if the refresh fails for any reason, the app destroys all session data and places itself in offline Local Accounts mode. 
+When the app first loads, it evaluates whether it has a stored OAuth refresh token from a previous authentication. If so, it attempts to refresh the SFDC session with that refresh token. See `appFinishedLaunching` in `RootViewController.m`. If there is no stored refresh token, or if the refresh fails for any reason, the app destroys all session data and places itself in offline Local Accounts mode. 
 
 The left-side navigation view (in landscape mode, also visible in portrait mode in a popover when you tap the 'Accounts' button), a.k.a. the Master view, is powered by the `SubNavViewController` class. The `RootViewController` initializes three instances of `SubNavViewController` - Local Accounts, My Accounts, and Accounts I Follow - and stacks them on top of each other in the Master view. You can switch between them by tapping on the `SubNavViewController`'s name in the upper left. If the user does not have a valid SFDC session, only Local Accounts are accessible and attempting to switch to any of the others will show a login screen.
 
 The right-side view is powered by the `DetailViewController`. It serves mostly as a container for the rest of the app's content and is responsible for creating, managing, and destroying Flying Windows. It also ensures that Flying Windows cannot be dragged off the screen, and it is responsible for applying inertial dragging when Flying Windows are moved as well as the overall management of the Flying Window stack.
 
-The various interactive, draggable panes that fill the `DetailViewController` - the record overview pane, news results pane, and web view pane - are termed Flying Windows and each is a subclass of the `FlyingWindowController` class. They are, respectively, `RecordOverviewController`, `RecordNewsViewController`, and `WebViewController`. The `FlyingWindowController` base class defines some basics about its look and enables it to be dragged about the screen.
+The various interactive, draggable panes that fill the `DetailViewController` - the record overview pane, news results pane, web view pane, list of related lists, related record grid, and related record views - are termed Flying Windows and each is a subclass of the `FlyingWindowController` class. They are, respectively, `RecordOverviewController`, `RecordNewsViewController`, `WebViewController`, `ListOfRelatedListsViewController`, `RelatedListGridView`, and `RelatedRecordViewController`. The `FlyingWindowController` base class defines some basics about its look and enables it to be dragged about the screen.
 
 `RecordOverviewController` is responsible for displaying a selected Account's record overview (Name, Industry, Phone, Website), rendering the Account's location on a map, and rendering the full record page layout for the Account.
 
@@ -84,11 +93,21 @@ The various interactive, draggable panes that fill the `DetailViewController` - 
 
 `WebViewController` is a simple `UIWebView` with a few added pieces of functionality, like being able to email the link to the open page, copy its URL, open in Safari, and expand the webview to full-screen.
 
+`ListOfRelatedListsViewController` lists all of the related lists on an Account. The list ordering as well as which lists appear is determined by your Account page layout. This view controller also chains subqueries together to display the number of related records on each list before you tap one.
+
+`RelatedListGridView` displays the related records on an Account for a given related object. The columns displayed on the grid are determined by your Account page layout. Related record grids have tap-to-sort columns and tapping an individual record's name will open its full detail.
+
+`RelatedRecordViewController` renders the full two-column layout for a related record. It supports any layoutable object, standard and custom alike.
+
 `FieldPopoverButton` is a generic `UIButton` intended to display the value of an sObject field. All `FieldPopoverButton`s can be tapped to copy the text value of that field, but depending on the field type, some may have additional actions. For example, a `FieldPopoverButton` displaying an address will offer to open the address in Google Maps, phone/email fields will offer to call with Facetime or Skype, and lookups to User will display a full-featured user profile with a photo and other details from the User record.
 
 `CommButton` is a generic `UIButton` intended to make it easy to Email, Skype, Facetime, or open the website for any field on the sObject. If an Account page layout has three fields of type Phone, for example, a `CommButton` of type Skype, when tapped, will allow you to place a Skype call to any of those three phone numbers.
 
-`FollowButton` is a generic `UIButton` intended to make it easy to create a follow/unfollow toggle between the running user and any other chatter-enabled object (User, Account, etc). 
+`FollowButton` is a generic `UIBarButtonItem` intended to make it easy to create a follow/unfollow toggle between the running user and any other chatter-enabled object (User, Account, etc). 
+
+`ChatterPostController` is the main interface for sharing an article or URL to chatter. It's geared mostly around sharing links, so while linkUrl and title are not traditionally required fields in a Chatter post, they are required here.
+
+`ObjectLookupController` is a lookup box launched when you tap the 'Post To' field in the `ChatterPostController`. It allows you to search for a User, Chatter Group, or Account (if Accounts are chatter-enabled in the current environment). 
 
 `AccountUtil` is a singleton, a general utility class that encapsulates many common functions used throughout the application. `AccountUtil` handles metadata operations, like querying and processing sObject describes, page layouts, as well as rendering the full record page layout for an Account. `AccountUtil` is also responsible for all local database operations for local accounts, processing sObject fields, various string manipulation utility functions, managing the network activity indicator, logging app errors, and other miscellaneous operations like determining the current IP address.
 

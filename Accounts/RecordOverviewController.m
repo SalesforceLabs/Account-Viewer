@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -48,13 +48,14 @@ static float cornerRadius = 4.0f;
 
 @implementation RecordOverviewController
 
-@synthesize accountMap, mapView, gridView, addressButton, recenterButton, geocodeButton, detailButton, recordLayoutView, scrollView, commButtons, commButtonBackground;
+@synthesize accountMap, mapView, gridView, addressButton, recenterButton, geocodeButton, detailButton, recordLayoutView, scrollView, commButtons, commButtonBackground, followButton;
 
 - (id) initWithFrame:(CGRect)frame {
     if((self = [super initWithFrame:frame])) {      
         int curY = self.navBar.frame.size.height;
         
         self.view.backgroundColor = [UIColor whiteColor];
+        isLoading = NO;
         
         // gridview
         UIImage *gridBG = [UIImage imageNamed:@"gridGradient.png"];
@@ -83,7 +84,7 @@ static float cornerRadius = 4.0f;
             
             CAGradientLayer *shadowLayer = [CAGradientLayer layer];
             shadowLayer.backgroundColor = [UIColor clearColor].CGColor;
-            shadowLayer.frame = CGRectMake(0, 70, self.view.frame.size.width + 10, 5);
+            shadowLayer.frame = CGRectMake(0, 70, self.view.frame.size.width + 5, 5);
             shadowLayer.shouldRasterize = YES;
             
             shadowLayer.colors = [NSArray arrayWithObjects:(id)[UIColor colorWithWhite:0.0 alpha:0.01].CGColor,
@@ -115,7 +116,7 @@ static float cornerRadius = 4.0f;
         }
 
         // Container for the map
-        UIView *mv = [[UIView alloc] initWithFrame:CGRectZero];
+        UIView *mv = [[UIView alloc] initWithFrame:CGRectMake( 0, 0, 100, 100 )];
         mv.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin;
         mv.autoresizesSubviews = YES;
         mv.backgroundColor = [UIColor clearColor];
@@ -127,20 +128,14 @@ static float cornerRadius = 4.0f;
         
         // Retry geocode button   
         if( !self.geocodeButton ) {
-            self.geocodeButton = [UIButton buttonWithType:UIButtonTypeCustom];
-            geocodeButton.titleLabel.numberOfLines = 0;
-            geocodeButton.titleLabel.lineBreakMode = UILineBreakModeWordWrap;
-            [geocodeButton setTitleColor:UIColorFromRGB(0x444444) forState:UIControlStateNormal];
+            self.geocodeButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
+            [geocodeButton setTitleColor:AppLinkColor forState:UIControlStateNormal];
             geocodeButton.titleLabel.textAlignment = UITextAlignmentCenter;
-            [geocodeButton.titleLabel setFont:[UIFont fontWithName:@"Verdana" size:18]];
+            [geocodeButton.titleLabel setFont:[UIFont boldSystemFontOfSize:18]];
             [geocodeButton setTitle:NSLocalizedString(@"Geocode Failed — Tap to retry", @"Geocode failure") forState:UIControlStateNormal];
             geocodeButton.backgroundColor = [UIColor clearColor];
             [geocodeButton addTarget:self action:@selector(configureMap) forControlEvents:UIControlEventTouchUpInside];
-            
-            geocodeButton.layer.cornerRadius = cornerRadius;
-            geocodeButton.layer.borderColor = [UIColor darkGrayColor].CGColor;
-            geocodeButton.layer.borderWidth = 1.0f;            
-            
+            geocodeButton.layer.borderColor = [UIColor darkGrayColor].CGColor;       
             geocodeButton.hidden = YES;
             
             [self.mapView addSubview:self.geocodeButton];
@@ -154,13 +149,13 @@ static float cornerRadius = 4.0f;
         // Recenter Button
         if( !self.recenterButton ) {
             self.recenterButton = [UIButton buttonWithType:UIButtonTypeCustom];
-            self.recenterButton.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.5];
+            self.recenterButton.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.6];
             self.recenterButton.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin;
             [self.recenterButton setTitle:NSLocalizedString(@"Recenter", @"Recenter label") forState:UIControlStateNormal];
             [self.recenterButton setTitleColor:UIColorFromRGB(0x1679c9) forState:UIControlStateNormal];
             [self.recenterButton addTarget:self action:@selector(recenterMap:) forControlEvents:UIControlEventTouchUpInside];
-            self.recenterButton.titleLabel.font = [UIFont boldSystemFontOfSize:15];
-            self.recenterButton.titleLabel.shadowColor = [UIColor whiteColor];
+            self.recenterButton.titleLabel.font = [UIFont boldSystemFontOfSize:17];
+            self.recenterButton.titleLabel.shadowColor = [UIColor blackColor];
             self.recenterButton.titleLabel.shadowOffset = CGSizeMake(0, 1);
             self.recenterButton.layer.borderWidth = 2.0f;
             self.recenterButton.layer.borderColor = gv.separatorColor.CGColor;
@@ -175,6 +170,7 @@ static float cornerRadius = 4.0f;
         [map.layer setMasksToBounds:YES];
         map.layer.cornerRadius = cornerRadius;
         map.autoresizingMask = mv.autoresizingMask;
+        map.delegate = self;
         
         self.accountMap = map;
         [map release];
@@ -195,7 +191,11 @@ static float cornerRadius = 4.0f;
     if( !self.detailViewController )
         return;
     
-    [self.detailViewController.subNavViewController refresh];
+    // This function is called when we follow/unfollow an account, so we only want to
+    // refresh the followed accounts subnav view 
+    for( SubNavViewController *snvc in self.rootViewController.subNavControllers )
+        if( snvc.subNavTableType == SubNavFollowedAccounts )
+            [snvc refresh];
 }
 
 - (void) layoutView {   
@@ -228,45 +228,51 @@ static float cornerRadius = 4.0f;
     }
     
     // Scrollview frame
-    CGRect r = CGRectMake( 0, curY, self.view.frame.size.width - 10, self.view.frame.size.height - curY);
+    CGRect r = CGRectMake( 0, curY, self.view.frame.size.width - 5, self.view.frame.size.height - curY);
     
     if( !CGRectEqualToRect( r, self.scrollView.frame ) )
         [self.scrollView setFrame:r];
     
-    // Reset curY for the scrollView inner content
-    curY = 40;
-    
-    [self.mapView setFrame:CGRectMake( 0, 10, self.view.frame.size.width, 10 )];
-    
-    // Account address button
-    s = [self.addressButton.titleLabel.text sizeWithFont:self.addressButton.titleLabel.font
-                                              constrainedToSize:CGSizeMake( self.view.frame.size.width - 20, 999 )];
-    [self.addressButton setFrame:CGRectMake( 10, curY, s.width, s.height)];
-    
-    curY += self.addressButton.frame.size.height + 5;
-    
-    // Account map
-    r = CGRectMake( 10, curY, self.view.frame.size.width - 30, 250 );
-    
-    [self.accountMap setFrame:r];
-    
-    curY += self.accountMap.frame.size.height;
-    
-    // Mapview container
-    [self.mapView setFrame:CGRectMake( 0, 10, self.view.frame.size.width, 
-                                      ( self.geocodeButton.hidden ? curY : 100 ) )];
-    
-    if( !self.mapView.hidden )
-        curY += 15;
-    
-    // Geocode failed button
-    [geocodeButton setFrame:CGRectMake( 10, 40, self.mapView.frame.size.width - 30, 40)];
-    
-    // Recenter button
-    CGSize buttonSize = CGSizeMake( lroundf(self.view.frame.size.width / 2.6f), 35 );
-    [self.recenterButton setFrame:CGRectMake( self.accountMap.frame.origin.x + self.accountMap.frame.size.width - buttonSize.width, 
-                                             self.accountMap.frame.origin.y, buttonSize.width, buttonSize.height )];
-    [self.recenterButton.superview bringSubviewToFront:self.recenterButton];
+    if( !self.mapView.hidden ) {
+        // Reset curY for the scrollView inner content
+        curY = 40;
+        
+        [self.mapView setFrame:CGRectMake( 0, 10, self.view.frame.size.width, 10 )];
+        
+        // Account address button
+        if( !self.addressButton.hidden ) {
+            s = [self.addressButton.titleLabel.text sizeWithFont:self.addressButton.titleLabel.font
+                                                      constrainedToSize:CGSizeMake( self.view.frame.size.width - 20, 999 )];
+            [self.addressButton setFrame:CGRectMake( 10, curY, s.width, s.height)];
+            
+            curY += self.addressButton.frame.size.height + 5;
+        }
+        
+        // Geocode failed button
+        [geocodeButton setFrame:CGRectMake( 10, 40, self.mapView.frame.size.width - 30, 40)];
+        
+        // Account map
+        if( !self.accountMap.hidden ) {
+            r = CGRectMake( 10, curY, self.view.frame.size.width - 20, 250 );
+            
+            [self.accountMap setFrame:r];
+            curY += self.accountMap.frame.size.height;
+        } else
+            curY += self.geocodeButton.frame.size.height + 10;
+        
+        // Mapview container
+        [self.mapView setFrame:CGRectMake( 0, 10, self.view.frame.size.width, 
+                                          ( self.geocodeButton.hidden ? curY : 100 ) )];
+        
+        curY += 15;    
+        
+        // Recenter button
+        CGSize buttonSize = CGSizeMake( lroundf(self.view.frame.size.width / 2.6f), 35 );
+        [self.recenterButton setFrame:CGRectMake( self.accountMap.frame.origin.x + self.accountMap.frame.size.width - buttonSize.width, 
+                                                 self.accountMap.frame.origin.y, buttonSize.width, buttonSize.height )];
+        [self.recenterButton.superview bringSubviewToFront:self.recenterButton];
+    } else
+        curY = 10;
     
     // Account detail view
     r = CGRectMake( 0, curY, 
@@ -331,11 +337,13 @@ static float cornerRadius = 4.0f;
     
     int fieldLayoutTag = 11;
     
-    // If the user taps several accounts in rapid succession, we can end up adding multiple layout views,
-    // so remove all of them
-    for( UIView *subview in [self.scrollView subviews] )
-        if( subview.tag == fieldLayoutTag )
-            [subview removeFromSuperview];
+    if( isLoading )
+        return;
+    
+    if( self.recordLayoutView ) {
+        [self.recordLayoutView removeFromSuperview];
+        self.recordLayoutView = nil;
+    }
     
     [DSBezelActivityView removeViewAnimated:NO];
         
@@ -377,7 +385,7 @@ static float cornerRadius = 4.0f;
         
         [self.navBar pushNavigationItem:title animated:YES];
         
-        self.recordLayoutView = [AccountUtil layoutViewForAccount:self.account withTarget:self.detailViewController isLocalAccount:YES];
+        self.recordLayoutView = [[AccountUtil sharedAccountUtil] layoutViewForLocalRecord:self.account withTarget:self.detailViewController];
         self.recordLayoutView.tag = fieldLayoutTag;
         
         [self.scrollView addSubview:self.recordLayoutView];
@@ -391,6 +399,7 @@ static float cornerRadius = 4.0f;
         return;
     } 
     
+    isLoading = YES;
     UINavigationItem *loading = [[UINavigationItem alloc] initWithTitle:NSLocalizedString(@"Loading...", @"Loading...")];
     loading.hidesBackButton = YES;    
     
@@ -403,21 +412,9 @@ static float cornerRadius = 4.0f;
     NSString *fieldsToQuery = @"";
     
     // Only query the fields that will be displayed in the page layout for this account, given its record type and page layout.
-    NSString *layoutId = [[[AccountUtil sharedAccountUtil] layoutForRecordTypeId:[self.account objectForKey:@"RecordTypeId"]] Id];
-    NSArray *allFields = [[AccountUtil sharedAccountUtil] fieldListForLayoutId:layoutId];
+    NSString *layoutId = [[[AccountUtil sharedAccountUtil] layoutForRecord:self.account] Id];
     
-    for( NSString *field in allFields ) {
-        // SOQL queries have a max character length of 10k
-        if( [fieldsToQuery length] > 9950 )
-            break;
-        
-        if( field && ![field isEqualToString:@""] ) {
-            if( [fieldsToQuery isEqualToString:@""] )
-                fieldsToQuery = field;
-            else
-                fieldsToQuery = [fieldsToQuery stringByAppendingFormat:@", %@", field];
-        }
-    }
+    fieldsToQuery = [[[AccountUtil sharedAccountUtil] fieldListForLayoutId:layoutId] componentsJoinedByString:@","];
     
     // Build and execute the query
     [[AccountUtil sharedAccountUtil] startNetworkAction];
@@ -437,24 +434,25 @@ static float cornerRadius = 4.0f;
             // Nuclear option - forces a logout in case loading this account failed
             [[AccountUtil sharedAccountUtil] receivedException:e];
             [[AccountUtil sharedAccountUtil] endNetworkAction];
-            [DSBezelActivityView removeViewAnimated:YES];
+            [DSBezelActivityView removeViewAnimated:NO];
+            isLoading = NO;
             
-            [self.rootViewController doLogout];
-            
-            /*[PRPAlertView showWithTitle:NSLocalizedString(@"Alert", @"Alert")
+            [PRPAlertView showWithTitle:NSLocalizedString(@"Alert", @"Alert")
                                 message:NSLocalizedString(@"Failed to load this Account.", @"Account load failed")
                             cancelTitle:NSLocalizedString(@"Cancel", @"Cancel")
                             cancelBlock:nil
                              otherTitle:NSLocalizedString(@"Retry", @"Retry")
                              otherBlock: ^ (void) {
                                  [self loadAccount];
-                             }];*/
+                             }];
             return;
         }
         
         dispatch_async(dispatch_get_main_queue(), ^(void) { 
-            self.account = [[[qr records] objectAtIndex:0] fields];
-            self.recordLayoutView = [AccountUtil layoutViewForAccount:self.account withTarget:self.detailViewController isLocalAccount:NO];
+            isLoading = NO;
+            ZKSObject *ob = [[qr records] objectAtIndex:0];
+            self.account = [ob fields];
+            self.recordLayoutView = [[AccountUtil sharedAccountUtil] layoutViewForsObject:ob withTarget:self.detailViewController singleColumn:YES];
             self.recordLayoutView.tag = fieldLayoutTag;
         
             [[AccountUtil sharedAccountUtil] endNetworkAction];
@@ -465,37 +463,17 @@ static float cornerRadius = 4.0f;
             if( [RootViewController isPortrait] )
                 title.leftBarButtonItem = self.detailViewController.browseButton;
             
-            if( [[AccountUtil sharedAccountUtil] isChatterEnabled] ) {
-                FollowButton *followButton = [FollowButton followButtonWithUserId:[[[[AccountUtil sharedAccountUtil] client] currentUserInfo] userId]
-                                                                         parentId:[self.account objectForKey:@"Id"]
-                                                                           target:self
-                                                                           action:@selector(refreshSubNav)];
-                followButton.layer.cornerRadius = cornerRadius;
-                followButton.backgroundColor = [UIColor colorWithPatternImage:[UIImage imageNamed:@"blueButtonBackground.png"]];
+            if( [[AccountUtil sharedAccountUtil] isObjectChatterEnabled:@"Account"] ) {                
+                self.followButton = [FollowButton followButtonWithUserId:[[[[AccountUtil sharedAccountUtil] client] currentUserInfo] userId]
+                                                                parentId:[self.account objectForKey:@"Id"]];
+                self.followButton.delegate = self;
                 
-                [followButton setFrame:CGRectMake(0, 0, 95, 30)];
-                
-                UIToolbar* toolbar = [[UIToolbar alloc]
-                                      initWithFrame:CGRectMake(0, 0, 100, self.navBar.frame.size.height)];
-                NSMutableArray *buttons = [[NSMutableArray alloc] initWithCapacity:2];
-                
-                toolbar.tintColor = AppSecondaryColor;
-                toolbar.opaque = YES;
-                
-                [buttons addObject:[[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace
-                                                                                  target:nil
-                                                                                  action:nil] autorelease]];
-                [buttons addObject:[[[UIBarButtonItem alloc] initWithCustomView:followButton] autorelease]];
-                
-                [toolbar setItems:buttons];
-                [buttons release];
-                
-                [title setRightBarButtonItem:[[[UIBarButtonItem alloc] initWithCustomView:toolbar] autorelease]];
-                [toolbar release];
+                [title setRightBarButtonItem:[FollowButton loadingBarButtonItem]];
             }
             
             [DSBezelActivityView removeViewAnimated:YES];
             [self.navBar pushNavigationItem:title animated:YES];
+            [self.followButton performSelector:@selector(loadFollowState) withObject:nil afterDelay:0.5];
             
             self.gridView.hidden = NO;
             [self configureMap];
@@ -506,6 +484,8 @@ static float cornerRadius = 4.0f;
             [self setupCommButtons];
             
             [self layoutView];
+            
+            [self.rootViewController allSubNavSelectAccountWithId:[self.account objectForKey:@"Id"]];
         });
     });    
 }
@@ -523,21 +503,42 @@ static float cornerRadius = 4.0f;
     [mapView release];
     [gridView release];
     [commButtons release];
+    [followButton release];
     [super dealloc];
+}
+
+#pragma mark - follow button delegate
+
+- (void)followButtonDidChangeState:(FollowButton *)followButton toState:(enum FollowButtonState)state isUserAction:(BOOL)isUserAction {
+    if( state == FollowLoading )
+        [self.navBar.topItem setRightBarButtonItem:[FollowButton loadingBarButtonItem] animated:YES];
+    else
+        [self.navBar.topItem setRightBarButtonItem:self.followButton animated:YES];
+    
+    if( isUserAction && state != FollowLoading )
+        [self refreshSubNav];
 }
 
 #pragma mark - displaying MKMapView for an account's address
 
 - (IBAction) recenterMap:(id)sender {
-    AddressAnnotation *pin = [[accountMap annotations] objectAtIndex:0];
-    CLLocationCoordinate2D loc = pin.coordinate;
-    loc.latitude += 0.005;
-    
-    MKCoordinateSpan span = MKCoordinateSpanMake(0.03, 0.03);
-    MKCoordinateRegion region = MKCoordinateRegionMake( loc, span);
-    
-    [accountMap setRegion:region animated:(sender != nil)];    
-    [accountMap selectAnnotation:pin animated:YES];
+    if( [[accountMap annotations] count] > 0 ) {
+        AddressAnnotation *pin = [[accountMap annotations] objectAtIndex:0];
+        CLLocationCoordinate2D loc = pin.coordinate;
+        loc.latitude += 0.005;
+            
+        MKCoordinateSpan span = MKCoordinateSpanMake(0.03, 0.03);
+        MKCoordinateRegion region = MKCoordinateRegionMake( loc, span);
+        
+        [accountMap setRegion:region animated:(sender != nil)];    
+        [accountMap selectAnnotation:pin animated:YES];
+    }
+}
+
+- (void) mapView:(MKMapView *)mapView didAddAnnotationViews:(NSArray *)views {
+    [self performSelector:@selector(recenterMap:)
+               withObject:nil
+               afterDelay:1.0];
 }
 
 - (void)configureMap {    
@@ -554,7 +555,7 @@ static float cornerRadius = 4.0f;
         loc.latitude = [[cached objectAtIndex:0] doubleValue];
         loc.longitude = [[cached objectAtIndex:1] doubleValue];
     } else {                
-        NSString *addressStr = [AccountUtil addressForAccount:self.account useBillingAddress:![AccountUtil isEmpty:[self.account objectForKey:@"BillingStreet"]]];
+        NSString *addressStr = [AccountUtil addressForsObject:self.account useBillingAddress:![AccountUtil isEmpty:[self.account objectForKey:@"BillingStreet"]]];
         
         if( !addressStr || [addressStr isEqualToString:@""] )
             return;
@@ -619,7 +620,7 @@ static float cornerRadius = 4.0f;
         if( self.addressButton )
             [self.addressButton removeFromSuperview];
         
-        NSString *address = [AccountUtil addressForAccount:self.account useBillingAddress:![AccountUtil isEmpty:[self.account objectForKey:@"BillingStreet"]]];
+        NSString *address = [AccountUtil addressForsObject:self.account useBillingAddress:![AccountUtil isEmpty:[self.account objectForKey:@"BillingStreet"]]];
         
         self.addressButton = [FieldPopoverButton buttonWithText:address
                                                       fieldType:AddressField

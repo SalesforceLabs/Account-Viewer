@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -81,7 +81,7 @@ static float height = 575.0f;
         // Github button
         UIButton *gitHubButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
             
-        [gitHubButton setTitle:@"Force.com Labs on GitHub" forState:UIControlStateNormal];
+        [gitHubButton setTitle:[NSString stringWithFormat:@"%@ on GitHub", [AccountUtil appFullName]] forState:UIControlStateNormal];
         [gitHubButton addTarget:self
                               action:@selector(tappedGitHubButton:)
                     forControlEvents:UIControlEventTouchUpInside];
@@ -98,7 +98,7 @@ static float height = 575.0f;
         attributionLabel.shadowColor = [UIColor whiteColor];
         attributionLabel.shadowOffset = CGSizeMake( 0, 1 );
         attributionLabel.backgroundColor = [UIColor clearColor];
-        [attributionLabel setFont:[UIFont systemFontOfSize:13]];
+        [attributionLabel setFont:[UIFont boldSystemFontOfSize:13]];
         attributionLabel.textColor = RGB( 57.0f, 85.0f, 135.0f );
         
         [attributionLabel setFrame:CGRectMake( 10, height - 20, width - 20, 20 )];

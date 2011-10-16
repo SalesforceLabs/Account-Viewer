@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -35,7 +35,7 @@
 
 @implementation NewsTableViewCell
 
-@synthesize articleBrief, headline, articleJSON, articleImageView, cellWidth, articleSource, recordNewsViewController;
+@synthesize articleBrief, headline, articleJSON, articleImageView, articleSource, recordNewsViewController;
 
 - (id)initWithCellIdentifier:(NSString *)cellID {
     if ((self = [super initWithStyle:UITableViewCellStyleDefault reuseIdentifier:cellID])) {
@@ -78,8 +78,8 @@
     return self;
 }
 
-- (void) setCellWidth:(NSNumber *)width {
-    cellWidth = [width retain];
+- (void) setCellWidth:(float)width {
+    cellWidth = width;
 }
 
 - (void) setArticleImage:(UIImage *)image {    
@@ -139,7 +139,7 @@
 }
 
 - (void) layoutCell {
-    float curY = 10, curX = 15, availableWidth = [cellWidth doubleValue] - curX;
+    float curY = 10, curX = 15, availableWidth = cellWidth - curX;
     
     // Article headline  
     CGSize s = [headline.text sizeWithFont:headline.font
@@ -162,7 +162,7 @@
             imageRect.origin.x = curX;
             curX += articleImageView.image.size.width + 15;
         } else
-            imageRect.origin.x = [cellWidth doubleValue] - articleImageView.image.size.width;
+            imageRect.origin.x = cellWidth - articleImageView.image.size.width;
         
         availableWidth -= imageRect.size.width + 15;
         [articleImageView setFrame:imageRect];
@@ -181,7 +181,6 @@
     [articleImageView release];
     [articleSource release];
     [articleJSON release];
-    [cellWidth release];
     [super dealloc];
 }
 

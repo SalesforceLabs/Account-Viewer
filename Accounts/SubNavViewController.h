@@ -1,6 +1,6 @@
 /* 
  * Copyright (c) 2011, salesforce.com, inc.
- * Author: Jonathan Hersh
+ * Author: Jonathan Hersh jhersh@salesforce.com
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -34,8 +34,8 @@
 
 @interface SubNavViewController : UIViewController <UISearchBarDelegate, UITextFieldDelegate, AccountAddEditControllerDelegate, UITableViewDataSource, UITableViewDelegate, UIActionSheetDelegate> {
     BOOL searching;
-    BOOL letUserSelectRow;
     BOOL helperViewVisible;
+    BOOL queryingMore;
     int storedSize;
 }
 
@@ -50,7 +50,7 @@ enum SubNavTableType {
 
 @property (nonatomic, retain) UITableViewController *pullRefreshTableViewController;
 @property (nonatomic, retain) UISearchBar *searchBar;
-@property (nonatomic, retain) NSDictionary *searchResults;
+@property (nonatomic, retain) NSMutableDictionary *searchResults;
 @property (nonatomic, retain) NSMutableDictionary *myRecords;
 @property (nonatomic, retain) UINavigationBar *navigationBar;
 @property (nonatomic, retain) UIActionSheet *listActionSheet;
@@ -68,10 +68,11 @@ enum SubNavTableType {
 - (NSString *) whichList;
 - (NSString *) listTitleForTableType:(enum SubNavTableType)tableType withArrow:(BOOL)withArrow;
 
+- (void) clearRecords;
 - (void) refresh;
-- (void) refresh:(BOOL)resetRefresh;
 - (void) refreshResult:(NSArray *)results;
 - (void) setupNavBar;
+- (void) queryMore:(NSString *)queryLocator;
 
 - (void) cancelSearch;
 - (void) searchTableView;

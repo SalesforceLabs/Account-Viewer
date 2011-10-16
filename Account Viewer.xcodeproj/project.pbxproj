@@ -125,7 +125,6 @@
 		5E9B7FA613B2900A00E00C2C /* SimpleKeychain.m in Sources */ = {isa = PBXBuildFile; fileRef = 5E9B7FA513B2900A00E00C2C /* SimpleKeychain.m */; };
 		5E9B920E13D889A90005ACC2 /* favorite_off.png in Resources */ = {isa = PBXBuildFile; fileRef = 5E9B920C13D889A90005ACC2 /* favorite_off.png */; };
 		5E9B920F13D889A90005ACC2 /* favorite_on.png in Resources */ = {isa = PBXBuildFile; fileRef = 5E9B920D13D889A90005ACC2 /* favorite_on.png */; };
-		5E9B921413D8D0740005ACC2 /* Root.strings in Resources */ = {isa = PBXBuildFile; fileRef = 5E9B921613D8D0740005ACC2 /* Root.strings */; };
 		5EA312F2143D059100A4C746 /* DetailViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5EA312F1143D059000A4C746 /* DetailViewController.m */; };
 		5EA31302143D0B3800A4C746 /* zoomin.png in Resources */ = {isa = PBXBuildFile; fileRef = 5EA31300143D0B3800A4C746 /* zoomin.png */; };
 		5EA31303143D0B3800A4C746 /* zoomout.png in Resources */ = {isa = PBXBuildFile; fileRef = 5EA31301143D0B3800A4C746 /* zoomout.png */; };
@@ -1091,7 +1090,6 @@
 				5EE9AD5413D0C7B700B51C43 /* Localizable.strings in Resources */,
 				5E9B920E13D889A90005ACC2 /* favorite_off.png in Resources */,
 				5E9B920F13D889A90005ACC2 /* favorite_on.png in Resources */,
-				5E9B921413D8D0740005ACC2 /* Root.strings in Resources */,
 				5E29E79413DF204B00797D9B /* leftgradient.png in Resources */,
 				5E66095713E330510005BBA5 /* leftbg.png in Resources */,
 				5E66095913E3322E0005BBA5 /* panelBG2.png in Resources */,

@@ -2,16 +2,7 @@
 
 Account Viewer is a free, full-featured open-source native iPad app written in Objective-C and Cocoa. Account Viewer is the easiest way to browse your Accounts in any Salesforce environment and read news headlines tailored to them. Store your most important Accounts locally for secure offline access. Account Viewer has robust encrypted local account functionality and does not require you ever connect it to a Salesforce org.
 
-[Download it free from the Apple App Store](http://itunes.apple.com/us/app/account-viewer/id458454196?ls=1&mt=8)!
-
-by [Jonathan Hersh](mailto:jhersh@salesforce.com).
-
-This document is intended to introduce you to the app's architecture and design and make it as easy as possible for you to jump in, run it, and start contributing.
-
-Account Viewer's source is [freely available on GitHub](https://github.com/ForceDotComLabs/Account-Viewer).
-# Account Viewer for iPad #
-
-Account Viewer is a free, full-featured open-source native iPad app written in Objective-C and Cocoa. Account Viewer is the easiest way to browse your Accounts in any Salesforce environment and read news headlines tailored to them. Store your most important Accounts locally for secure offline access. Account Viewer has robust encrypted local account functionality and does not require you ever connect it to a Salesforce org.
+Account Viewer was available on the Apple App Store for a few months in late 2011 but has since been replaced by Salesforce Viewer. Salesforce Viewer is (or will shortly be) [available free on the App Store](http://itunes.apple.com/us/app/salesforce-viewer/id458454196?ls=1&mt=8) and will also be on Github.
 
 by [Jonathan Hersh](mailto:jhersh@salesforce.com).
 

@@ -1,8 +1,9 @@
 ## Are you looking for Salesforce Viewer? ##
 
-Salesforce Viewer replaced Account Viewer on the App Store in November 2011.
+Salesforce Viewer replaced Account Viewer in November 2011.
 
-* Salesforce Viewer will be open-sourced on GitHub shortly after version 2.1 goes live on the App Store (expected early January 2012)
+* Salesforce Viewer is [free on the App Store](http://her.sh/sfviewer)!
+* Salesforce Viewer is (or will shortly be) [open-sourced on GitHub](http://her.sh/sfvsource)!
 
 # Account Viewer for iPad #
 

@@ -1,9 +1,9 @@
-# Are you looking for Salesforce Viewer? #
+# Are you looking for Salesforce for iPad? #
 
-Salesforce Viewer replaced Account Viewer in November 2011.
+Salesforce for iPad (released February 2012) is the new Salesforce Viewer (released November 2011) which is the new Account Viewer (released August 2011).
 
-* Salesforce Viewer is [free on the App Store](http://her.sh/sfviewer)!
-* Salesforce Viewer is (or will shortly be) [posted to GitHub](http://her.sh/sfvsource)!
+* Salesforce for iPad is [free on the App Store](http://her.sh/sfipad)!
+* Salesforce for iPad will be [posted to GitHub](http://her.sh/sfvsource) after Cloudforce on 3/15.
 
 # Account Viewer for iPad #
 

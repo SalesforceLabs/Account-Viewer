@@ -3,7 +3,7 @@
 Salesforce for iPad (released February 2012) is the new Salesforce Viewer (released November 2011) which is the new Account Viewer (released August 2011).
 
 * Salesforce for iPad is [free on the App Store](http://her.sh/sfipad)!
-* Salesforce for iPad will be [posted to GitHub](http://her.sh/sfvsource) after Cloudforce on 3/15.
+* Salesforce for iPad is [open-sourced on GitHub](http://her.sh/sfvsource)!
 
 # Account Viewer for iPad #
 
